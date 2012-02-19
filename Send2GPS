@@ -1,0 +1,24 @@
+#!/bin/bash
+sudo rmmod garmin_gps &>/dev/null
+if [ "$(getcap /usr/bin/gpsbabel | cut -d' ' -f3- )" != "cap_sys_rawio+ep" ]; then
+  echo "gpsbabel lacks capabilites to access usb device. Either run $0 as sudo or add missing capability"
+  echo '# setcap "CAP_SYS_RAWIO=ep" /usr/bin/gpsbabel'
+  exit 1
+fi
+
+while [ -n "$1" ]; do
+	case "$1" in
+	(*gpx|*GPX)
+		gpsbabel -i gpx -f "$1" -o garmin -F usb:
+	;;
+	(*lmx|*LMX)
+		gpsbabel -i lmx -f "$1" -o garmin -F usb:
+	;;
+	(--gcfilter)
+		sed -r -f ~/gc_gpx_garmin.sed "$2" | gpsbabel -i gpx -f - -o garmin -F usb:
+		shift
+	;;
+	esac
+	echo "transfered $1"
+	shift
+done
