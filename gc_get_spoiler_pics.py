@@ -31,7 +31,7 @@ def usage():
   print("   --savedir <dir>             Directory to save images in")
   print("   --filter </regex/>          Regex that needs to match the Image Description")
   print("   --threads <num>             use <num> threads, 0 disables threading, default is number of CPUs")
-  print("   --allinonedir               put all photos in one directory instead of sorting them into GeocachePhotos")
+  print("   -f | --flat                 put all photos in one directory instead of sorting them into GeocachePhotos subdirectories")
   print("   -s | --skip_present         skip GC if at least one picture of GC present in savedir")
   print("   -d | --done_file <filename> use and update list of previously downloaded data")
   print("   -g | --no_geotag            don't geotag images")
@@ -332,7 +332,7 @@ if __name__ == '__main__':
 
 ######### Parse Arguments ##########
   try:
-    opts, files = getopt.gnu_getopt(sys.argv[1:], "hsgxd:", ["help","delete_old","skip_present","done_file=","lat_offset=","lon_offset=","savedir=", "filter=","no_geotag","threads="])
+    opts, files = getopt.gnu_getopt(sys.argv[1:], "fhsgxd:", ["help","delete_old","skip_present","done_file=","lat_offset=","lon_offset=","savedir=", "filter=","no_geotag","threads=","flat"])
   except getopt.GetoptError as e:
     print("ERROR: Invalid Option: " +str(e))
     usage()
@@ -342,7 +342,7 @@ if __name__ == '__main__':
     if o in ["-h","--help"]:
       usage()
       sys.exit()
-    elif o in ["--allinonedir"]:
+    elif o in ["-f","--flat"]:
       allinonedir_=True
     elif o in ["--threads"]:
       num_threads_=abs(int(a))

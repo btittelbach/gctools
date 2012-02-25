@@ -9,7 +9,7 @@ The downloaded images can be geotagged with the geocache's coordinates and/or so
 
 Once the images are downloaded you can either put them into the <tt>Garmin/GeocachePhotos/</tt> folder on your Garmin handheld gps in which case a "Show Photos" menu-entry will appear on your device on Geocaches with images.
 
-Or you can put them into your gps handhelds image folder where they will appear as Photo waypoints on your Map if your GPS handheld supports geotagged photos. e.g. <tt>Garmin/JPEG/</tt> on Garmin devices. In this case the <tt>--allinonedir</tt> option may be helpful.
+Or you can put them into your gps handhelds image folder where they will appear as Photo waypoints on your Map if your GPS handheld supports geotagged photos. e.g. <tt>Garmin/JPEG/</tt> on Garmin devices. In this case the <tt>--flat</tt> option may be helpful.
 
 ==== Requirements ====
 
@@ -30,7 +30,7 @@ Or you can put them into your gps handhelds image folder where they will appear 
    --savedir <dir>             Directory to save images in
    --filter </regex/>          Regex that needs to match the Image Description
    --threads <num>             use <num> threads, 0 disables threading, default is number of CPUs
-   --allinonedir               put all photos in one directory instead of sorting them into GeocachePhotos
+   --flat               put all photos in one directory instead of sorting them into GeocachePhotos
    -s | --skip_present         skip GC if at least one picture of GC present in savedir
    -d | --done_file <filename> use and update list of previously downloaded data
    -g | --no_geotag            don't geotag images
@@ -49,10 +49,10 @@ Or you can put them into your gps handhelds image folder where they will appear 
 ; <tt>--threads</tt>
 : <tt>--threads 18</tt> seems to work well and really speeds things up
 
-; <tt>--allinonedir</tt>
+; <tt>--flat</tt>
 : per default, images are sorted into directories suitable for the <tt>Garmin/GeocachePhotos/ folder.</tt>
 : read http://garmin.blogs.com/softwareupdates/2012/01/geocaching-with-photos.html
-: <tt>--allinonedir</tt> disables this behaviour. E.g. when you intend to copy the downloaed images into your <tt>Garmin/JPEG/</tt> folder instead of <tt>Garmin/GeocachePhotos/</tt> folder.
+: <tt>--flat</tt> disables this behaviour. E.g. when you intend to copy the downloaed images into your <tt>Garmin/JPEG/</tt> folder instead of <tt>Garmin/GeocachePhotos/</tt> folder.
 
 ; <tt>--done_file ''donefile''</tt>
 : the script will use the file ''donefile'' to remember which images from which GeoCaches were previously downloaded and the geocaching.com homepage need not be checked again.
