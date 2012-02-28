@@ -105,9 +105,9 @@ def parseSingleCoordinate(t):
       pass
   return coord
 
-RE_NSWECOORDS=re.compile(r"([NS+-].+)\s+([WEO+-].+)")
-RE_WENSCOORDS=re.compile(r"([WEO+-].+)\s+([NS+-].+)")
-RE_DECCOORDS=re.compile(r"((?:[+-]\s*)?\d+[.,]\d+)\s+((?:[+-]\s*)?\d+[.,]\d+)")
+RE_NSWECOORDS=re.compile(r"([NS+-].+)\s+([WEO+-].+)",re.IGNORECASE)
+RE_WENSCOORDS=re.compile(r"([WEO+-].+)\s+([NS+-].+)",re.IGNORECASE)
+RE_DECCOORDS=re.compile(r"((?:[+-]\s*)?\d+[.,]\d+)\s+((?:[+-]\s*)?\d+[.,]\d+)",re.IGNORECASE)
 def parseCoords(t):
   coords=(None,None)
   m1 = RE_NSWECOORDS.search(t)
