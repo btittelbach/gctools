@@ -14,6 +14,7 @@ import re
 import urllib.request, urllib.parse, urllib.error
 import atexit
 import imghdr
+import codecs
 from multiprocessing import Pool, Lock, RLock
 
 
@@ -21,6 +22,15 @@ def usage():
   print("This tool will merge two GPX Files")
   print("\nSyntax:")
   print("   %s -o <output-gpx-file> <gpx-file1> [gpx-file2 [...]]" % (sys.argv[0]))
+
+def guessEncodingFromBOM(filename):
+  with open(filename,"rb") as fh:
+    sample = fh.read(4)
+  for (bom,codec) in [(codecs.BOM_UTF32_LE,"utf_32_le"),(codecs.BOM_UTF32_BE,"utf_32_be"),(codecs.BOM_UTF16_LE,"utf_16_le"),(codecs.BOM_UTF16_BE,"utf_16_be"),(codecs.BOM_UTF8,"utf_8_sig")]:
+    if sample.startswith(bom):
+      return codec
+  return "utf_8"
+
 
 if __name__ == '__main__':
 
@@ -73,7 +83,7 @@ if __name__ == '__main__':
   comp_func = {"max":max, "min":min}
   xml_parser = etree.XMLParser(encoding="utf-8")
   for gpxfile in files:
-    fgpx = open(gpxfile)
+    fgpx = open(gpxfile, encoding=guessEncodingFromBOM(gpxfile))
     try:
       gpxtree = etree.parse(fgpx,xml_parser).getroot()
       nsmap.update(gpxtree.nsmap)  #get namespace info from gpx files
