@@ -135,6 +135,29 @@ Use gpx_merge.py to merge all <tt>*-wpts.gpx</tt> into one <tt>waypoints.gpx</tt
    ./gpx_merge.py -o london-wpts.gpx london1-wpts.gpx london2-wpts.gpx london3-wpts.gpx
 
 
+== gc_grab_gpx.py ==
+
+Fetch one or more GPX files from the geocaching.com website
+
+==== Requirements ====
+
+* geocaching.com premium membership login
+* python  	(i.e. python2)
+* python-lxml	(i.e. python2-lxml)
+* python-requests (v0.5)
+
+==== Usage ====
+  Sytax:
+       ./gc_grab_gpx.py [options] <gccode> [gccode [...]]
+  Options:
+       -h             | --help                 Show Help
+       -d dir         | --gpxdir=dir           Write gpx to this dir
+       -u username  | --username=gc_user 
+       -p password  | --password=gc_pass 
+ 
+ Example:
+   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme GC3APJW GC3BFT3
+
 == Older Stuff ==
 
 === Send2GPS ===
