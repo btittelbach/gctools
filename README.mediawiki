@@ -137,7 +137,7 @@ Use gpx_merge.py to merge all <tt>*-wpts.gpx</tt> into one <tt>waypoints.gpx</tt
 
 == gc_grab_gpx.py ==
 
-Fetch one or more single-cache GPX files or precompiled pocketqueries from the geocaching.com website. 
+Fetch one or more single-cache GPX files or precompiled pocketqueries from the geocaching.com website.
 
 ==== Requirements ====
 
@@ -147,18 +147,20 @@ Fetch one or more single-cache GPX files or precompiled pocketqueries from the g
 * python-requests (v0.5)
 
 ==== Usage ====
-  Sytax:
-       ./gc_grab_gpx.py [options] <gccode|pqname> [gccode|pqname [...]]
-  Options:
+ Sytax:
+       ./gc_grab_gpx.py [options] <gccode|pquid|pqname> [...]
+ Options:
        -h           | --help             Show Help
        -d dir       | --gpxdir=dir       Write gpx to this dir
+       -l           | --listpq           List PocketQueries
        -a           | --allpq            Download all PocketQueries
-       -u username  | --username=gc_user 
-       -p password  | --password=gc_pass 
+       -u username  | --username=gc_user
+       -p password  | --password=gc_pass
  
  Examples:
-   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme GC3APJW GC3BFT3 "Events in Graz"
+   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme GC3APJW GC3BFT3 "Events in Graz" 148faed7-c780-4293-aeb9-a8e02356c5f6
    ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -a
+   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -l
 
 == Older Stuff ==
 
