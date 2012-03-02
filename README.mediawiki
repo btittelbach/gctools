@@ -137,7 +137,7 @@ Use gpx_merge.py to merge all <tt>*-wpts.gpx</tt> into one <tt>waypoints.gpx</tt
 
 == gc_grab_gpx.py ==
 
-Fetch one or more GPX files from the geocaching.com website
+Fetch one or more single-cache GPX files or precompiled pocketqueries from the geocaching.com website. 
 
 ==== Requirements ====
 
@@ -148,15 +148,17 @@ Fetch one or more GPX files from the geocaching.com website
 
 ==== Usage ====
   Sytax:
-       ./gc_grab_gpx.py [options] <gccode> [gccode [...]]
+       ./gc_grab_gpx.py [options] <gccode|pqname> [gccode|pqname [...]]
   Options:
-       -h             | --help                 Show Help
-       -d dir         | --gpxdir=dir           Write gpx to this dir
+       -h           | --help             Show Help
+       -d dir       | --gpxdir=dir       Write gpx to this dir
+       -a           | --allpq            Download all PocketQueries
        -u username  | --username=gc_user 
        -p password  | --password=gc_pass 
  
- Example:
-   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme GC3APJW GC3BFT3
+ Examples:
+   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme GC3APJW GC3BFT3 "Events in Graz"
+   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -a
 
 == Older Stuff ==
 
