@@ -1,0 +1,8 @@
+example scripts for processing geocaching.com notification e-mails
+(for pocketquieries, or log notification).
+I.e. Pipe your geocaching.com e-mails to these scrips and they will automatically download stuff for you
+
+=== Requirements ===
+* zsh
+* uudeview
+* unzip
