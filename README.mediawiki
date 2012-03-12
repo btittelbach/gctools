@@ -134,6 +134,10 @@ Use gpx_merge.py to merge all <tt>*-wpts.gpx</tt> into one <tt>waypoints.gpx</tt
  Example:
    ./gpx_merge.py -o london-wpts.gpx london1-wpts.gpx london2-wpts.gpx london3-wpts.gpx
 
+to merge (and strip duplicate gccodes) serveral PQs into two files using zsh shell syntax:
+ ~/gctools/gpx_merge.py -o merge.gpx **/(<->*.gpx~*-wpts.gpx)(.)
+ ~/gctools/gpx_merge.py -o merge-wpts.gpx **/<->*-wpts.gpx(.)
+
 
 == gc_grab_gpx.py ==
 
