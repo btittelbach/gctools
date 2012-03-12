@@ -124,4 +124,5 @@ if __name__ == '__main__':
     newgpx.append(elem)
   
   with open(output_file_, "wb") as nfh:
+    nfh.truncate()
     nfh.write(etree.tostring(doc,method="xml",xml_declaration=True,encoding="utf-8"))
