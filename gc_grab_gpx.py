@@ -53,7 +53,7 @@ for o, a in opts:
   elif o in ["-p","--password"]:
     gc_password_=a
 
-re_gccode = re.compile(r'GC[a-z0-9]{5}',re.IGNORECASE)
+re_gccode = re.compile(r'GC[a-z0-9]{1,6}',re.IGNORECASE)
 re_pquid = re.compile(r'[a-f0-9-]{36}',re.IGNORECASE)
 pquids = filter(re_pquid.match, args)
 gccodes = filter(re_gccode.match, args)

@@ -13,7 +13,7 @@ trap "rm -Rf $tmpdir" EXIT
 uudeview -q +o -t -p "$tmpdir" - || exit 0
 decfiles=( "${tmpdir}"/*(.N) )
 ((#decfiles == 0)) && exit 0
-local GCTXT="$(egrep "For GC.....: .* \(.* Cache\)" "${decfiles[@]}")"
+local GCTXT="$(egrep "For GC[A-Z0-9]+: .* \(.* Cache\)" "${decfiles[@]}")"
 if [[ -n $GCTXT  && "$GCTXT" != *"(Unknown Cache)"* && "$GCTXT" == *(#b)(GC([A-Z0-9])##):\ * ]]; then
   $GCTOOLS_GRAB_SCRIPT -u "$GCUSER" -p "$GCPASS" -d "$GPX_DIR" "$match[1]" &>/dev/null
 fi
