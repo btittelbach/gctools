@@ -178,12 +178,12 @@ Inserts GCVote data into one or more groundspeak pocketquery GPX files
 
 ==== Usage ====
  Sytax:
-       ./gc_add_gcvote_to_pq.py [options] <pocketquery.gpx> [...]
+       /home/bernhard/gctools/gc_add_gcvote_to_pq.py [options] <pocketquery.gpx> [...]
  Options:
-       -h           | --help
-       -u username  | --username=gcvote_user
-       -p password  | --password=gcvote_pass
-
+       -h          | --help
+       -u username | --username=gcvote_user
+       -p password | --password=gcvote_pass
+       -m          | --mean     Use mean instead of median
 
 == Older Stuff ==
 
