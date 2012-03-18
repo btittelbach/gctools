@@ -166,6 +166,25 @@ Fetch one or more single-cache GPX files or precompiled pocketqueries from the g
    ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -a
    ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -l
 
+== gc_add_gcvote_to_pq.py ==
+
+Inserts GCVote data into one or more groundspeak pocketquery GPX files
+
+==== Requirements ====
+
+* python  	(i.e. python2)
+* python-lxml	(i.e. python2-lxml)
+* python-requests (v0.5)
+
+==== Usage ====
+ Sytax:
+       ./gc_add_gcvote_to_pq.py [options] <pocketquery.gpx> [...]
+ Options:
+       -h           | --help
+       -u username  | --username=gcvote_user
+       -p password  | --password=gcvote_pass
+
+
 == Older Stuff ==
 
 === Send2GPS ===
