@@ -22,7 +22,7 @@ Or you can put them into your gps handhelds image folder where they will appear 
 ==== Usage ====
 
  Syntax:
-   /home/bernhard/gc_get_spoiler_pics.py [options] <pq-gpx-file> [pq-gpx-file2 [...]]
+   ./gc_get_spoiler_pics.py [options] <pq-gpx-file> [pq-gpx-file2 [...]]
  
  Options:
    --lat_offset <degrees>      Latitude Offset for Images Geotag
@@ -66,7 +66,7 @@ This checks all caches in pocket-query 123.gpx for attached pictures that have
 either cache, stage or spoiler in their name and downloads them to
 <tt>./spoilerpics/</tt> unless ''done.store'' say's they've already been checked:
 
- /home/bernhard/gc_get_spoiler_pics.py -x --savedir ./spoilerpics/  \
+ ./gc_get_spoiler_pics.py -x --savedir ./spoilerpics/  \
   -d ./spoilerpics/done.store --filter "cache|stage|spoiler" 123.gpx
 
 ===== Full HowTo for Ubuntu/Debian Linux, bash and Garmin devices =====
@@ -168,7 +168,11 @@ Fetch one or more single-cache GPX files or precompiled pocketqueries from the g
 
 == gc_add_gcvote_to_pq.py ==
 
-Inserts GCVote data into one or more groundspeak pocketquery GPX files
+Inserts GCVote data into the short_description of one or more groundspeak pocketquery GPX files
+
+Note that it's a bad idea to change the description of a GPX file with <tt>gc_add_gcvote_to_pq.py</tt> and then download spoilerpics with <tt>gc_get_spoiler_pics.py</tt>, since the later depends on unchanged GC descriptions to figure out if it needs to redownload a spoiler image or not.
+
+Also note, that for now, calling <tt>gc_add_gcvote_to_pq.py</tt> on a file repeatedly will not change the GC-Vote Information, but just add new lines of GC-Vote text additionally to the old ones. (Of course, this might be what you want to include both --mean and median information)
 
 ==== Requirements ====
 
@@ -178,7 +182,7 @@ Inserts GCVote data into one or more groundspeak pocketquery GPX files
 
 ==== Usage ====
  Sytax:
-       /home/bernhard/gctools/gc_add_gcvote_to_pq.py [options] <pocketquery.gpx> [...]
+       ./gc_add_gcvote_to_pq.py [options] <pocketquery.gpx> [...]
  Options:
        -h          | --help
        -u username | --username=gcvote_user
