@@ -78,7 +78,7 @@ def gc_login(usr, pwd):
   global cookie_jar_
   post_data={"__EVENTTARGET":"","__EVENTARGUMENT":"","ctl00$ContentBody$tbUsername":usr,"ctl00$ContentBody$tbPassword":pwd,"ctl00$ContentBody$btnSignIn":"Login"}
   r = requests.post(gc_auth_uri_, data=post_data, allow_redirects=False, cookies=cookie_jar_, headers={"User-Agent":user_agent_})
-  return r.error is None and r.content.find('<span class="Success">You are logged in as <strong class="LoginUsername" title="%s">%s</strong></span>' % (usr,usr)) > -1
+  return r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are logged in as %s' % (usr)) > -1
 
 def gc_download_gpx(gccode, dstdir):
   global cookie_jar_
