@@ -121,6 +121,9 @@ Suppose you generate multiple overlapping pocket-queries, you put them onto your
 No more !!
 Use gpx_merge.py to merge all <tt>*-wpts.gpx</tt> into one <tt>waypoints.gpx</tt> and: problem solved!
 
+Your waypoint files is larger than the maximum number of waypoints supported by your GPS ?
+Use the limit option <tt>-l</tt> to set a maximum number of waypoints to write into the output file.
+
 ==== Requirements ====
 
 * python3
@@ -128,9 +131,13 @@ Use gpx_merge.py to merge all <tt>*-wpts.gpx</tt> into one <tt>waypoints.gpx</tt
 
 ==== Usage ====
 
+ Options:
+   -o <output-gpx-file>
+   -l <maximum number of waypoints in output-gpx-file>
+
  Syntax:
    ./gpx_merge.py -o <output-gpx-file> <gpx-file1> [gpx-file2 [...]]
- 
+
  Example:
    ./gpx_merge.py -o london-wpts.gpx london1-wpts.gpx london2-wpts.gpx london3-wpts.gpx
 
