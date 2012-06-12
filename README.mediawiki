@@ -196,6 +196,21 @@ Also note, that for now, calling <tt>gc_add_gcvote_to_pq.py</tt> on a file repea
        -p password | --password=gcvote_pass
        -m          | --mean     Use mean instead of median
 
+== CustomSymbols ==
+
+copy the folder <tt>CustomSymbols</tt> to into the subfolder /Garmin/ on your Oregon/Dakto/Montana/eTrex30 
+to change the geocache-waypoint icon from the blue flag to smaller unobtrusive symbols:
+
+; Question of Answer of a Multicache
+: Orange dot
+
+; Stages of a Multicache
+: Orange dot with one green quarter
+
+; Final Location of a Multicache
+: Orange dot with a crosshair
+
+
 == Older Stuff ==
 
 === Send2GPS ===
