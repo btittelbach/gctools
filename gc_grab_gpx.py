@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# (c) Bernhard Tittelbach <xro@gmx.net>
+# License: public domain, attribution appreciated
+
 
 import sys
 import os

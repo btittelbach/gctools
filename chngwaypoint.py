@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 # GPLv3 (c) 2011 Bernhard Tittelbach aka xro
 
 import sys, os
