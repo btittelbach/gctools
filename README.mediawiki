@@ -155,7 +155,7 @@ Fetch one or more single-cache GPX files or precompiled pocketqueries from the g
 * geocaching.com premium membership login
 * python  	(i.e. python2)
 * python-lxml	(i.e. python2-lxml)
-* python-requests (v0.5)
+* python-requests
 
 ==== Usage ====
  Sytax:

@@ -8,7 +8,6 @@ import sys
 import os
 import getopt
 from lxml import etree
-import cookielib
 import requests
 import re
 
@@ -74,19 +73,29 @@ if gc_username_ is None or gc_password_ is None:
 
 destination_dir_=os.path.expanduser(destination_dir_)
 user_agent_="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.2) Gecko/20100101 Firefox/10.0.2"
-cookie_jar_=cookielib.CookieJar()
+
+if  "__build__" in requests.__dict__ and requests.__build__ >= 0x000704:
+    cookie_jar_ = {}
+else:
+    import cookielib
+    cookie_jar_ =cookielib.CookieJar()
+
 parser_ = etree.HTMLParser(encoding="utf-8")
 
 def gc_login(usr, pwd):
   global cookie_jar_
   post_data={"__EVENTTARGET":"","__EVENTARGUMENT":"","ctl00$ContentBody$tbUsername":usr,"ctl00$ContentBody$tbPassword":pwd,"ctl00$ContentBody$btnSignIn":"Login"}
   r = requests.post(gc_auth_uri_, data=post_data, allow_redirects=False, cookies=cookie_jar_, headers={"User-Agent":user_agent_})
-  return r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are logged in as %s' % (usr)) > -1
+  if  "__build__" in requests.__dict__ and requests.__build__ >= 0x000704:
+    cookie_jar_.update(r.cookies)
+    return r.error is None and "userid" in cookie_jar_
+  else:
+    return r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are logged in as %s' % (usr)) > -1
 
 def gc_download_gpx(gccode, dstdir):
   global cookie_jar_
   uri = gc_wp_uri_ % gccode.upper()
-  r = requests.post(uri, allow_redirects=True, cookies=cookie_jar_)
+  r = requests.get(uri, cookies=cookie_jar_, headers={"User-Agent":user_agent_, "Referer":uri})
   post_data={"ctl00$ContentBody$btnGPXDL":"GPX file"}
   if r.error is None:
     tree = etree.fromstring(r.content, parser_)
