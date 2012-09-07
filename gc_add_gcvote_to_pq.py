@@ -48,7 +48,7 @@ def getGCVotes(usr, pwd, gcids_list, use_median=True, request_limit=10):
         print e
         continue
     else:
-      raise Exception("GC-Vote download error")
+      raise Exception("GC-Vote download error." + (" GC-Vote: "+r.content if len(r.content) < 10 else ""))
   return rdict
 
 if __name__ == '__main__':
