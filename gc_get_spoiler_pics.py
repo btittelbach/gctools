@@ -19,12 +19,13 @@ import imghdr
 from multiprocessing import Pool, Lock, RLock
 from hashlib import md5
 import pickle
+import shutil
 import codecs
 
 def usage():
   print("This tool will take a geocaching.com pocketquery and download and geotag spoiler pics")
   print("\nSyntax:")
-  print("   %s [options] <pq-gpx-file> [pq-gpx-file2 [...]]" % (sys.argv[0]))
+  print("   %s [options] <pq-gpx-file> [pq-gpx-file2 [GCCODE*.jpg [...]]]" % (sys.argv[0]))
   print("\nOptions:")
   print("   --lat_offset <degrees>      Latitude Offset for Images Geotag")
   print("   --lon_offset <degrees>      Longitude Offset for Images Geotag")
@@ -41,10 +42,12 @@ def usage():
   print("   This checks all caches in pocketquery 123.gpx for attached pictures that have")  
   print("   either cache, stage or spoiler in their name and downloads them to")  
   print("   ./spoilerpics/ unless done.store say's they've already been checked:")  
-  print("  >   %s --savedir ./spoilerpics/  \\" % (sys.argv[0]))
+  print("  >   %s --savedir ./garmin/GeocachePhotos/  \\" % (sys.argv[0]))
   print("      -d ./spoilerpics/done.store --filter \"cache|stage|spoiler\" 123.gpx")
   print("   Example for a common filter string:")
   print("     --filter \"cache|stage|hinweis|spoiler|hint|area|gegend|karte|wichtig|weg|map|beschreibung|description|blick|view|park|blick|hier|waypoint|track|hiding|place|nah|doserl\"")
+  print("   Example for sorting images named GC1234.jpg into GeocachePhotos folder:")
+  print("  >  %s --savedir ./garmin/GeocachePhotos/ GC12345_geochech_spoiler.jpg GC12ABC_other_spoiler.jpg" % (sys.argv[0]))
   
 class GCDoneInfo:
   def __init__(self, gchash=None, imghashset=set()):
@@ -326,13 +329,15 @@ if __name__ == '__main__':
   done_dict_= {}
   done_dict_lock_=Lock()
   gc_in_gpx_list_=[]
-  images_ext_=".jpg".lower()
+  gc_from_images_list_=[]
+  images_ext_=".jpg"    #.lower()
+  pocketqueries_ext_=".gpx" #.lower()
   print_lock_=RLock()
   allinonedir_=False
 
 ######### Parse Arguments ##########
   try:
-    opts, files = getopt.gnu_getopt(sys.argv[1:], "fhsgxd:", ["help","delete_old","skip_present","done_file=","lat_offset=","lon_offset=","savedir=", "filter=","no_geotag","threads=","flat"])
+    opts, cl_arguments = getopt.gnu_getopt(sys.argv[1:], "fhsgxd:", ["help","delete_old","skip_present","done_file=","lat_offset=","lon_offset=","savedir=", "filter=","no_geotag","threads=","flat"])
   except getopt.GetoptError as e:
     print("ERROR: Invalid Option: " +str(e))
     usage()
@@ -369,8 +374,17 @@ if __name__ == '__main__':
         except (EOFError, IOError, pickle.UnpicklingError):
           print("ERROR, could not load existing donefile")
 
+  files = list(filter(os.path.isfile, cl_arguments))
+  gpxfiles = list(filter(lambda f: os.path.splitext(f)[1].lower() == pocketqueries_ext_, files))
+  jpgfiles = list(filter(lambda f: os.path.splitext(f)[1].lower() == images_ext_, files))
+  useful_files = gpxfiles+jpgfiles
+  other_files = set(files).difference(useful_files)
+  if other_files:
+    print("ERROR:\tdon't know that to do with these files:")
+    print("\t"+", ".join(other_files)+"\n")
+
 ######### Main Program ##########
-  if len(files) <1:
+  if len(useful_files) <1:
     usage()
     sys.exit()
 
@@ -407,10 +421,27 @@ if __name__ == '__main__':
     mp_pool = Pool(processes=num_threads_, initializer=reInitGlobalVars, initargs=(globals_for_processes, ))
     atexit.register(terminateProcesses, mp_pool)
     parprint("multi-processing enabled")
+
+  # copy images from cmd-line arguments into their respective folder
+  re_gccode_filename = re.compile(r"^(GC[A-Z0-9]{1,5}).*"+images_ext_+r"$",re.I)
+  for jpgfile in jpgfiles:
+    gccode = None
+    m = re_gccode_filename.match(os.path.basename(jpgfile))
+    if not m is None:
+        gccode = m.group(1).upper()
+        gcimgdir = getFileSaveDir(gccode)
+        if not os.path.isdir(gcimgdir):
+            os.makedirs(gcimgdir)
+        print("Copying %s to %s" % (jpgfile, gcimgdir))
+        shutil.copy(jpgfile, gcimgdir)
+        if geotag_images_:
+            pass #TODO
+        gc_from_images_list_.append(gccode)
   
+  # parse gpx pocketqueries from cmd-line arguments and download any and all spoiler images
   xml_parser = etree.XMLParser(encoding="utf-8")
   nsmap = {}
-  for gpxfile in files:
+  for gpxfile in gpxfiles:
     fgpx = open(gpxfile, encoding=guessEncodingFromBOM(gpxfile))
     try:
       gpxtree = etree.parse(fgpx,xml_parser).getroot()
@@ -461,7 +492,7 @@ if __name__ == '__main__':
           addTupleToDone(parseHTMLDescriptionDownloadAndTag(url, gccode, gcname, gchash, latitude + lat_offset_, longitude + lon_offset_, altitude))
           
   if delete_old_images_:
-    for fp in genListOfImagesNotStartingWithGCCodeInSaveDir(gc_in_gpx_list_):
+    for fp in genListOfImagesNotStartingWithGCCodeInSaveDir(gc_in_gpx_list_ + gc_from_images_list_):
       parprint("Deleting old image: %s" % fp)
       os.remove(fp)
 #    with done_dict_lock_:

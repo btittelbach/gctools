@@ -4,7 +4,7 @@ __NOTOC__
 These scripts have been written and tested on GNU/Linux. Your experience on other operation systems may vary. Feedback and patches are welcome.
 
 == gc_get_spoiler_pics.py ==
-Takes a geocaching.com pocket-query .gpx-file and trawls the geocaching.com homepage for spoilerpics.
+Takes a geocaching.com pocket-query .gpx-file and trawls the geocaching.com homepage for garmin/GeocachePhotos.
 The downloaded images can be geotagged with the geocache's coordinates and/or sorted into directories compatible with the Garmin GeocachePhoto feature on newer Garmin handheld GPS devices.  (e.g. Oregon x50, Montana, etc with newest Firmware)
 
 Once the images are downloaded you can either put them into the <tt>Garmin/GeocachePhotos/</tt> folder on your Garmin handheld gps in which case a "Show Photos" menu-entry will appear on your device on Geocaches with images.
@@ -22,7 +22,7 @@ Or you can put them into your gps handhelds image folder where they will appear 
 ==== Usage ====
 
  Syntax:
-   ./gc_get_spoiler_pics.py [options] <pq-gpx-file> [pq-gpx-file2 [...]]
+   ./gc_get_spoiler_pics.py [options] <pq-gpx-file> [pq-gpx-file2 [GCCODE*.jpg [...]]]
  
  Options:
    --lat_offset <degrees>      Latitude Offset for Images Geotag
@@ -64,10 +64,14 @@ Or you can put them into your gps handhelds image folder where they will appear 
 ===== Example =====
 This checks all caches in pocket-query 123.gpx for attached pictures that have
 either cache, stage or spoiler in their name and downloads them to
-<tt>./spoilerpics/</tt> unless ''done.store'' say's they've already been checked:
+<tt>./garmin/GeocachePhotos/</tt> unless ''done.store'' say's they've already been checked:
 
- ./gc_get_spoiler_pics.py -x --savedir ./spoilerpics/  \
-  -d ./spoilerpics/done.store --filter "cache|stage|spoiler" 123.gpx
+ ./gc_get_spoiler_pics.py -x --savedir ./garmin/GeocachePhotos/  \
+  -d ./garmin/GeocachePhotos/done.store --filter "cache|stage|spoiler" 123.gpx
+
+This sorts images named after their GCCODE into the <tt>./garmin/GeocachePhotos/<tt> directory:
+
+  ./gc_get_spoiler_pics.py --savedir ./garmin/GeocachePhotos/ GC12345_geochech_spoiler.jpg GC12ABC_other_spoiler.jpg
 
 ===== Full HowTo for Ubuntu/Debian Linux, bash and Garmin devices =====
 * install required software
