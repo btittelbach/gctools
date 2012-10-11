@@ -39,27 +39,27 @@ def usage():
   print("   -x | --delete_old           delete images of gc not found in given gpx")
   print("   -h | --help                 Show this Help")
   print("\nExample:")
-  print("   This checks all caches in pocketquery 123.gpx for attached pictures that have")  
-  print("   either cache, stage or spoiler in their name and downloads them to")  
-  print("   ./spoilerpics/ unless done.store say's they've already been checked:")  
+  print("   This checks all caches in pocketquery 123.gpx for attached pictures that have")
+  print("   either cache, stage or spoiler in their name and downloads them to")
+  print("   ./spoilerpics/ unless done.store say's they've already been checked:")
   print("  >   %s --savedir ./garmin/GeocachePhotos/  \\" % (sys.argv[0]))
   print("      -d ./spoilerpics/done.store --filter \"cache|stage|spoiler\" 123.gpx")
   print("   Example for a common filter string:")
   print("     --filter \"cache|stage|hinweis|spoiler|hint|area|gegend|karte|wichtig|weg|map|beschreibung|description|blick|view|park|blick|hier|waypoint|track|hiding|place|nah|doserl\"")
   print("   Example for sorting images named GC1234.jpg into GeocachePhotos folder:")
   print("  >  %s --savedir ./garmin/GeocachePhotos/ GC12345_geochech_spoiler.jpg GC12ABC_other_spoiler.jpg" % (sys.argv[0]))
-  
+
 class GCDoneInfo:
   def __init__(self, gchash=None, imghashset=set()):
     self.gchash = gchash
     self.imghashset = imghashset
-  
+
   def update(self, gchash=None, imghashset=None):
     if not gchash is None:
       self.gchash = gchash
     if not imghashset is None:
       self.imghashset.union(imghashset)
-  
+
 def checkImageMagick():
   return (os.system("convert -version &>/dev/null") == 0)
 
@@ -109,7 +109,7 @@ def downloadImage(imguri, saveas):
     urllib.request.urlcleanup()
     return saveas
   return None
-  
+
 def getAttachedImages(tree,searchstring):
   for atag in tree.findall(searchstring):
     if atag.tag == "a" and atag.get("class") == "lnk" and atag.get("rel") == "lightbox":
@@ -158,7 +158,7 @@ def deleteFilePatternInSaveDir(pattern):
       os.remove(fn)
       deleted_files.append(fn)
   return deleted_files
-  
+
 def rmdirEmptyDirs(path):
   if not os.path.isdir(path):
     return False
@@ -246,7 +246,7 @@ def addToDone(gccode, hash=None, imghashset=set()):
       done_dict_[gccode] = GCDoneInfo(hash, imghashset)
     else:
       done_dict_[gccode].update(hash, imghashset)
-        
+
 def addTupleToDone(t):
   addToDone(*t)
 
@@ -265,7 +265,7 @@ def checkPreviouslyDoneImg(gccode, imghash):
   if gccode in done_dict_:
     return imghash in done_dict_[gccode].imghashset
   else:
-    return False  
+    return False
 
 def writeDoneFile():
   global done_file_, done_dict_, done_dict_lock_
@@ -290,7 +290,7 @@ def genImgHash(imguri, imgdesc):
   hash = md5()
   hash.update(os.path.basename(imguri).encode("utf-8"))
   hash.update(imgdesc.encode("utf-8"))
-  return hash.hexdigest()  
+  return hash.hexdigest()
 
 def reInitGlobalVars(var_dict):
   for varname in var_dict.keys():
@@ -329,7 +329,7 @@ if __name__ == '__main__':
   done_dict_= {}
   done_dict_lock_=Lock()
   gc_in_gpx_list_=[]
-  gc_from_images_list_=[]
+  gc_from_images_dict_={}
   images_ext_=".jpg"    #.lower()
   pocketqueries_ext_=".gpx" #.lower()
   print_lock_=RLock()
@@ -402,7 +402,7 @@ if __name__ == '__main__':
   atexit.register(lambda: os.remove(os.path.join(img_save_path_,dir_lock_filename_ )))
 
   atexit.register(writeDoneFile)
-  
+
   # Check ImageMagick convert available:
   imagemagick_available_ = checkImageMagick()
   if not imagemagick_available_:
@@ -432,12 +432,15 @@ if __name__ == '__main__':
         gcimgdir = getFileSaveDir(gccode)
         if not os.path.isdir(gcimgdir):
             os.makedirs(gcimgdir)
+        dst_jpgfile = os.path.join(gcimgdir,os.path.basename(jpgfile))
         print("Copying %s to %s" % (jpgfile, gcimgdir))
-        shutil.copy(jpgfile, gcimgdir)
-        if geotag_images_:
-            pass #TODO
-        gc_from_images_list_.append(gccode)
-  
+        shutil.copy(jpgfile, dst_jpgfile)
+        checkImageIsJPEGAndConvert(dst_jpgfile)
+        if not gccode in gc_from_images_dict_:
+          gc_from_images_dict_[gccode]=[dst_jpgfile]
+        else:
+          gc_from_images_dict_[gccode].append(dst_jpgfile)
+
   # parse gpx pocketqueries from cmd-line arguments and download any and all spoiler images
   xml_parser = etree.XMLParser(encoding="utf-8")
   nsmap = {}
@@ -451,7 +454,7 @@ if __name__ == '__main__':
       parprint("\tErrorMsg: %s" % (str(e)))
       continue
     fgpx.close()
-    
+
     for wpt_elem in gpxtree:
       if wpt_elem.tag[-3:] == "wpt":
         latitude = float(wpt_elem.get("lat"))
@@ -469,9 +472,18 @@ if __name__ == '__main__':
             url = cache_elem.text.strip()
           elif cache_elem.tag[-5:] == "cache":
             gchash = genCacheDescriptionHash(cache_elem)
-        
+
+        # tag images from CL-arguments if applicaple
+        if geotag_images_ and gccode in gc_from_images_dict_:
+          for dst_jpgfile in gc_from_images_dict_[gccode]:
+            if mp_pool:
+              mp_pool.apply_async(geotagImage,(dst_jpgfile, latitude + lat_offset_, longitude + lon_offset_, altitude))
+            else:
+              geotagImage(dst_jpgfile, latitude + lat_offset_, longitude + lon_offset_, altitude)
+
+        # process gccode and download any spoilerpics
         gc_in_gpx_list_.append(gccode)
-        
+
         gcimgdir = getFileSaveDir(gccode)
         if not allinonedir_:
           if not os.path.isdir(gcimgdir):
@@ -490,9 +502,9 @@ if __name__ == '__main__':
           mp_pool.apply_async(parseHTMLDescriptionDownloadAndTag,(url, gccode, gcname, gchash, latitude + lat_offset_, longitude + lon_offset_, altitude), callback=addTupleToDone)
         else:
           addTupleToDone(parseHTMLDescriptionDownloadAndTag(url, gccode, gcname, gchash, latitude + lat_offset_, longitude + lon_offset_, altitude))
-          
+
   if delete_old_images_:
-    for fp in genListOfImagesNotStartingWithGCCodeInSaveDir(gc_in_gpx_list_ + gc_from_images_list_):
+    for fp in genListOfImagesNotStartingWithGCCodeInSaveDir(gc_in_gpx_list_ + list(gc_from_images_dict_.keys())):
       parprint("Deleting old image: %s" % fp)
       os.remove(fp)
 #    with done_dict_lock_:
@@ -506,6 +518,6 @@ if __name__ == '__main__':
 
   print("removing empty directories..")
   rmdirEmptyDirs(img_save_path_)
-  
+
   print("All Done! Now move contents of %s to %s on your garmin device" % (img_save_path_, os.path.join("/garmin","JPEG") if allinonedir_ else os.path.join("/garmin","GeocachePhotos")))
 
