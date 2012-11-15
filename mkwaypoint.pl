@@ -43,7 +43,7 @@ sub convert_single
 {
   my $c=uc(shift(@_));
   $c=~s/,/./;
-  if ($c=~/(N|S|W|E|O)?\s*(\d{2,3})\D*(\d{1,2}\.\d{3})/) {
+  if ($c=~/(N|S|W|E|O)?\s*(\d{2,3})\D+(\d{1,2}\.\d{3})/) {
     my $nv = ($2+($3/60));
     $nv = 0.0-$nv if ($1 eq "S" or $1 eq "W");
     return $nv;
