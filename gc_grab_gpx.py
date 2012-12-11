@@ -28,11 +28,12 @@ def usage():
   print "       -d dir       | --gpxdir=dir       Write gpx to this dir"
   print "       -l           | --listpq           List PocketQueries"
   print "       -a           | --allpq            Download all PocketQueries"
+  print "       -c           | --createpqdir      Create dir for PQ"
   print "       -u username  | --username=gc_user "
   print "       -p password  | --password=gc_pass "
 
 try:
-  opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hlad:", ["listpq","help","gpxdir=","username","password","allpq"])
+  opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hlad:c", ["listpq","help","gpxdir=","username","password","allpq","createpqdir"])
 except getopt.GetoptError, e:
   print "ERROR: Invalid Option: " +str(e)
   usage()
@@ -40,6 +41,7 @@ except getopt.GetoptError, e:
 
 fetch_all_pqs_ = False
 list_pqs_ = False
+create_pq_dir_ = False
 for o, a in opts:
   if o in ["-h","--help"]:
     usage()
@@ -49,18 +51,19 @@ for o, a in opts:
   elif o in ["-l","--listpq"]:
     list_pqs_ = True
   elif o in ["-d","--gpxdir"]:
-    destination_dir_=a
+    destination_dir_ = a
+  elif o in ["-c","--createpqdir"]:
+    create_pq_dir_ = True
   elif o in ["-u","--username"]:
-    gc_username_=a
+    gc_username_ = a
   elif o in ["-p","--password"]:
-    gc_password_=a
+    gc_password_ = a
 
 re_gccode = re.compile(r'GC[a-z0-9]{1,6}',re.IGNORECASE)
 re_pquid = re.compile(r'[a-f0-9-]{36}',re.IGNORECASE)
 pquids = filter(re_pquid.match, args)
 gccodes = filter(re_gccode.match, args)
 pqnames = set(args) - set(pquids) - set(gccodes)
-
 if (list_pqs_ == False and fetch_all_pqs_ == False and len(args) <1) or not os.path.isdir(destination_dir_):
   print "ERROR: No gccodes given or %s may not be a valid writeable directory" % destination_dir_
   usage()
@@ -140,12 +143,16 @@ def gc_download_pq(pquid, dstdir):
   raise Exception("Recieved HTTP Error "+str(r.status_code))
 
 pqdict = {}
+pqrevdict = {}
+pq_to_get_tuplelist = []
+
 if not gc_login(gc_username_, gc_password_):
   print "ERROR: login failed, wrong username/password"
   sys.exit(1)
 
-if len(pqnames) > 0 or fetch_all_pqs_ or list_pqs_:
+if len(pqnames) > 0 or len(pquids) > 0 or fetch_all_pqs_ or list_pqs_:
   pqdict = gc_get_pq_names()
+  pqrevdict = dict(zip(pqdict.values(),pqdict.keys()))
 
 for gccode in gccodes:
   try:
@@ -160,19 +167,31 @@ if list_pqs_:
   for (pqname, pquid) in pqdict.items():
     print "  %s :  %s" % (pquid, pqname)
 
+for pquid in pquids:
+  if not pquid in pqrevdict:
+    print "ERROR: a PQ with UID '%s' is not in the list of downloadable pocketquieries on geocaching.com" % pquid
+    continue
+  pq_to_get_tuplelist.append((pqrevdict[pquid],pquid))
+
 for pqname in pqnames:
   if not pqname in pqdict:
     print "ERROR: a PQ named '%s' is not in the list of downloadable pocketquieries on geocaching.com" % pqname
     continue
-  pquids.append(pqdict[pqname])
+  pq_to_get_tuplelist.append((pqname,pqdict[pqname]))
 
 if fetch_all_pqs_:
-  pquids = pqdict.values()
+  pq_to_get_tuplelist = pqdict.items()
 
-for pquid in pquids:
+for (pqname,pquid) in pq_to_get_tuplelist:
+  if create_pq_dir_:
+    pq_save_dir = os.path.join(destination_dir_,pqname)
+  else:
+    pq_save_dir = destination_dir_
   try:
-    fn = gc_download_pq(pquid, destination_dir_)
-    print "downloaded %s to %s" % (fn, destination_dir_)
+    if not os.path.exists(pq_save_dir):
+      os.mkdir(pq_save_dir)
+    fn = gc_download_pq(pquid, pq_save_dir)
+    print "downloaded %s and saved %s to %s" % (pqname, fn, pq_save_dir)
   except Exception, e:
-    print "ERROR: download of PQ '%s' to %s failed" % (pquid, destination_dir_)
+    print "ERROR: download of PQ '%s' with id '%s' to %s failed" % (pqname, pquid, pq_save_dir)
     print e
