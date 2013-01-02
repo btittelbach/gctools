@@ -90,8 +90,8 @@ def gc_login(usr, pwd):
   post_data={"__EVENTTARGET":"","__EVENTARGUMENT":"","ctl00$ContentBody$tbUsername":usr,"ctl00$ContentBody$tbPassword":pwd,"ctl00$ContentBody$btnSignIn":"Login"}
   r = requests.post(gc_auth_uri_, data=post_data, allow_redirects=False, cookies=cookie_jar_, headers={"User-Agent":user_agent_})
   if  "__build__" in requests.__dict__ and requests.__build__ >= 0x000704:
-    cookie_jar_.update(r.cookies)
-    return r.error is None and "userid" in cookie_jar_
+    cookie_jar_ = r.cookies
+    return r.error is None and "userid" in r.cookies
   else:
     return r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are logged in as %s' % (usr)) > -1
 
