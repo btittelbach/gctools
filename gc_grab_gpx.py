@@ -33,7 +33,7 @@ def usage():
   print "       -p password  | --password=gc_pass "
 
 try:
-  opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hlad:c", ["listpq","help","gpxdir=","username","password","allpq","createpqdir"])
+  opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hlad:c", ["listpq","help","gpxdir=","username=","password=","allpq","createpqdir"])
 except getopt.GetoptError, e:
   print "ERROR: Invalid Option: " +str(e)
   usage()

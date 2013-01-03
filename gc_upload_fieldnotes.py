@@ -26,7 +26,7 @@ def usage():
   print "       -p password  | --password=gc_pass "
 
 try:
-  opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:h", ["username","password"])
+  opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:h", ["username=","password="])
 except getopt.GetoptError, e:
   print "ERROR: Invalid Option: " +str(e)
   usage()
