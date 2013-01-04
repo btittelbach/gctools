@@ -51,7 +51,7 @@ for o, a in opts:
 
 gcvisitfiles = filter(os.path.exists, args)
 if len(gcvisitfiles) < 1:
-    print "ERROR: fieldnote files not found" % destination_dir_
+    print "ERROR: No fieldnote files found"
     usage()
     sys.exit(1)
 
