@@ -163,19 +163,25 @@ Fetch one or more single-cache GPX files or precompiled pocketqueries from the g
 
 ==== Usage ====
  Sytax:
-       ./gc_grab_gpx.py [options] <gccode|pquid|pqname> [...]
+        ./gc_grab_gpx.py [options] <gccode|pquid|pqname> [...]
  Options:
-       -h           | --help             Show Help
-       -d dir       | --gpxdir=dir       Write gpx to this dir
-       -l           | --listpq           List PocketQueries
-       -a           | --allpq            Download all PocketQueries
-       -u username  | --username=gc_user
-       -p password  | --password=gc_pass
- 
+        -h           | --help             Show Help
+        -d dir       | --gpxdir=dir       Write gpx to this dir
+        -l           | --listpq           List PocketQueries
+        -a           | --allpq            Download all PocketQueries
+        -c           | --createpqdir      Create dir for PQ
+        -u username  | --username=gc_user 
+        -p password  | --password=gc_pass 
+        -i           | --noninteractive   Never prompt for pwd, just fail
+ If username and password are not provided, we interactively
+ ask for them the first time and store a session cookie. Unless -i is given
+
  Examples:
-   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme GC3APJW GC3BFT3 "Events in Graz" 148faed7-c780-4293-aeb9-a8e02356c5f6
-   ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -a
+   ./gc_grab_gpx.py GC3APJW GC3BFT3 "Events in Graz" 148faed7-c780-4293-aeb9-a8e02356c5f6
+   ./gc_grab_gpx.py -a
+   ./gc_grab_gpx.py -l
    ./gc_grab_gpx.py -u besserverstecker -p wonderwhytheyhateme -l
+
 
 == gc_add_gcvote_to_pq.py ==
 
@@ -199,6 +205,33 @@ Also note, that for now, calling <tt>gc_add_gcvote_to_pq.py</tt> on a file repea
        -u username | --username=gcvote_user
        -p password | --password=gcvote_pass
        -m          | --mean     Use mean instead of median
+
+
+== gc_upload_fieldnotes.py ==
+
+Uploads fieldnote files from geocaching.com compatible GPS devices to the website.
+
+==== Requirements ====
+
+* python  	(i.e. python2)
+* python-lxml	(i.e. python2-lxml)
+* python-requests
+
+==== Usage ====
+ Sytax:
+        [./gc_upload_fieldnotes.py -u <user> -p <pass>] geocache_visits.txt
+ Options:
+        -h           | --help             Show Help
+        -u username  | --username=gc_user 
+        -p password  | --password=gc_pass 
+        -i           | --noninteractive   Never prompt for pwd, just fail
+ If username and password are not provided, we interactively
+ ask for them the first time and store a session cookie. Unless -i is given
+
+ Examples:
+   ./gc_upload_fieldnotes.py /media/GARMIN/Garmin/geocache_visits.txt
+   ./gc_upload_fieldnotes.py /media/MAGELLAN/Geocaches/newlogs.txt
+
 
 == CustomSymbols ==
 
