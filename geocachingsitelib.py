@@ -210,10 +210,6 @@ def upload_fieldnote(fieldnotefileObj, ignore_previous_logs=True):
     post_files = {"ctl00$ContentBody$FieldNoteLoader" : fieldnotefileObj}
     r = requests.post(uri, data=post_data, files=post_files, allow_redirects=True, cookies=cookie_jar_, headers={"User-Agent":user_agent_, "Referer":uri})
     if r.error is None:
-        if __debug__:
-            with open("/tmp/result.html","w") as fh:
-                fh.truncate()
-                fh.write(r.content)
         tree = etree.fromstring(r.content, parser_)
         successdiv = tree.find(".//div[@id='ctl00_ContentBody_regSuccess']")
         if not successdiv is None:
