@@ -124,7 +124,7 @@ def login(usr, pwd, remember=False):
         cookie_jar_ = r.cookies
         login_ok = r.error is None and "userid" in r.cookies
     else:
-        login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are logged in as %s' % (usr)) > -1
+        login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (usr)) > -1
     if not login_ok:
         raise GeocachingSiteError("login failed, wrong username/password")
 
