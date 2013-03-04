@@ -7,12 +7,9 @@
 import sys
 import os
 import getopt
-from lxml import etree
-import requests
-import re
 import geocachingsitelib as gc
 
-destination_dir_=os.path.curdir
+destination_dir_ = os.path.curdir
 gc_username_ = None
 gc_password_ = None
 
@@ -37,17 +34,17 @@ except getopt.GetoptError, e:
 fetch_all_pqs_ = False
 list_pqs_ = False
 create_pq_dir_ = False
-be_interactive_ = True
+gc.be_interactive_ = True
 for o, a in opts:
     if o in ["-h","--help"]:
         usage()
         sys.exit()
     elif o in ["-u","--username"]:
-        gc_username_ = a
+        gc.gc_username = a
     elif o in ["-p","--password"]:
-        gc_password_ = a
+        gc.gc_password = a
     elif o in ["-i","--noninteractive"]:
-        be_interactive_ = False
+        gc.be_interactive = False
 
 gcvisitfiles = filter(os.path.exists, args)
 if len(gcvisitfiles) < 1:
@@ -55,21 +52,14 @@ if len(gcvisitfiles) < 1:
     usage()
     sys.exit(1)
 
-try:
-    if gc_username_ is None or gc_password_ is None:
-        gc.autologin_interactive_save_cookie(be_interactive_)
-    else:
-        gc.login(gc_username_, gc_password_)
-except Exception, e:
-    gc.autologin_invalidate_cookie()
-    print "ERROR during authentication/login"
-    print e
-    sys.exit(1)
-
 for gcvisitfile in gcvisitfiles:
     try:
         with open(gcvisitfile, "rb") as fileObj:
             print "%s: %s" % (gcvisitfile, gc.upload_fieldnote(fileObj))
+    except gc.NotLoggedInError, e:
+        print "ERROR:", e
+        sys.exit(1)
     except Exception, e:
         print "ERROR: upload of fieldnotefile %s failed" % (gcvisitfile)
         print e
+

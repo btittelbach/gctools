@@ -7,12 +7,10 @@
 import sys
 import os
 import getopt
-from lxml import etree
-import requests
 import re
 import geocachingsitelib as gc
 
-destination_dir_=os.path.curdir
+destination_dir_ = os.path.curdir
 gc_username_ = None
 gc_password_ = None
 
@@ -41,7 +39,7 @@ except getopt.GetoptError, e:
 fetch_all_pqs_ = False
 list_pqs_ = False
 create_pq_dir_ = False
-be_interactive_ = True
+gc.be_interactive = True
 for o, a in opts:
     if o in ["-h","--help"]:
         usage()
@@ -55,11 +53,11 @@ for o, a in opts:
     elif o in ["-c","--createpqdir"]:
         create_pq_dir_ = True
     elif o in ["-u","--username"]:
-        gc_username_ = a
+        gc.gc_username = a
     elif o in ["-p","--password"]:
-        gc_password_ = a
+        gc.gc_password = a
     elif o in ["-i","--noninteractive"]:
-        be_interactive_ = False
+        gc.be_interactive = False
 
 re_gccode = re.compile(r'GC[a-z0-9]{1,6}',re.IGNORECASE)
 re_pquid = re.compile(r'[a-f0-9-]{36}',re.IGNORECASE)
@@ -73,29 +71,25 @@ if (list_pqs_ == False and fetch_all_pqs_ == False and len(args) <1) or not os.p
     usage()
     sys.exit(1)
 
-try:
-    if gc_username_ is None or gc_password_ is None:
-        gc.autologin_interactive_save_cookie(be_interactive_)
-    else:
-        gc.login(gc_username_, gc_password_)
-except Exception, e:
-    gc.autologin_invalidate_cookie()
-    print "ERROR during authentication/login"
-    print e
-    sys.exit(1)
-
 pqdict = {}
 pqrevdict = {}
 pq_to_get_tuplelist = []
 
 if len(pqnames) > 0 or len(pquids) > 0 or fetch_all_pqs_ or list_pqs_:
-    pqdict = gc.get_pq_names()
+    try:
+        pqdict = gc.get_pq_names()
+    except gc.NotLoggedInError, e:
+        print "ERROR:", e
+        sys.exit(1)
     pqrevdict = dict(zip(pqdict.values(),pqdict.keys()))
 
 for gccode in gccodes:
     try:
         fn = gc.download_gpx(gccode, destination_dir_)
         print "downloaded %s to %s" % (fn, destination_dir_)
+    except gc.NotLoggedInError, e:
+        print "ERROR:", e
+        sys.exit(1)
     except Exception, e:
         print "ERROR: GPX download of %s to %s failed" % (gccode, destination_dir_)
         print e
@@ -130,6 +124,9 @@ for (pqname,pquid) in pq_to_get_tuplelist:
             os.mkdir(pq_save_dir)
         fn = gc.download_pq(pquid, pq_save_dir)
         print "downloaded %s and saved %s to %s" % (pqname, fn, pq_save_dir)
+    except gc.NotLoggedInError, e:
+        print "ERROR:", e
+        sys.exit(1)
     except Exception, e:
         print "ERROR: download of PQ '%s' with id '%s' to %s failed" % (pqname, pquid, pq_save_dir)
         print e

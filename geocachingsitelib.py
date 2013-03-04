@@ -6,26 +6,24 @@
 
 import sys
 import os
-import getopt
 from lxml import etree
 import requests
 import re
 import cPickle
 import exceptions
+import types
 
 #### Global Constants ####
 
-gc_auth_uri_="https://www.geocaching.com/login/default.aspx"
-gc_uploadfieldnotes_uri_="http://www.geocaching.com/my/uploadfieldnotes.aspx"
-gc_wp_uri_="http://www.geocaching.com/seek/cache_details.aspx?wp=%s"
-gc_pqlist_uri_="http://www.geocaching.com/pocket/default.aspx"
-gc_pqdownload_host_="http://www.geocaching.com"
-gc_pqdownload_path_='/pocket/downloadpq.ashx?g=%s'
+gc_auth_uri_ = "https://www.geocaching.com/login/default.aspx"
+gc_uploadfieldnotes_uri_ = "http://www.geocaching.com/my/uploadfieldnotes.aspx"
+gc_wp_uri_ = "http://www.geocaching.com/seek/cache_details.aspx?wp=%s"
+gc_pqlist_uri_ = "http://www.geocaching.com/pocket/default.aspx"
+gc_pqdownload_host_ = "http://www.geocaching.com"
+gc_pqdownload_path_ = '/pocket/downloadpq.ashx?g=%s'
 
-user_agent_="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.2) Gecko/20100101 Firefox/10.0.2"
-
-default_config_dir_= os.path.join(os.path.expanduser('~'),".local","share","gctools")
-auth_cookie_default_filename_= "gctools_cookies"
+default_config_dir_ = os.path.join(os.path.expanduser('~'),".local","share","gctools")
+auth_cookie_default_filename_ = "gctools_cookies"
 
 
 #### Exceptions ####
@@ -36,19 +34,16 @@ class HTTPError(Exception):
 class GeocachingSiteError(Exception):
     pass
 
+class NotLoggedInError(Exception):
+    pass
+
 
 #### Internal Helper Functions ####
 
 def _is_new_requests_lib():
     return "__build__" in requests.__dict__ and requests.__build__ >= 0x000704
 
-if _is_new_requests_lib():
-    cookie_jar_ = {}
-else:
-    import cookielib
-    cookie_jar_ =cookielib.CookieJar()
-
-parser_ = etree.HTMLParser(encoding="utf-8")
+parser_ = etree.HTMLParser(encoding = "utf-8")
 
 def _ask_usr_pwd():
     print "Please provide your geocaching.com login credentials:"
@@ -59,9 +54,9 @@ def _ask_usr_pwd():
     return (usr,pwd)
 
 def _parse_for_hidden_inputs(uri):
-    global cookie_jar_
+    gcsession = getDefaultInteractiveGCSession()
     post_data = {}
-    r = requests.get(uri, cookies=cookie_jar_, headers={"User-Agent":user_agent_, "Referer":uri})
+    r = gcsession.req_get(uri)
     if r.error is None:
         tree = etree.fromstring(r.content, parser_)
         for input_elem in tree.findall(".//input[@type='hidden']"):
@@ -81,115 +76,192 @@ def _delete_config_file(filename):
     except:
         pass
 
-def _save_cookie_login(cookie_fileobject):
-    global cookie_jar_
-    saved_data = {
-        "jar":cookie_jar_,
-        "requestsversion": requests.__build__ if  "__build__" in requests.__dict__ else None
-    }
-    assert(cookie_fileobject.mode == "wb")
-    cPickle.dump(saved_data, cookie_fileobject, 2)
 
-def _load_cookie_login(cookie_fileobject):
-    global cookie_jar_
-    assert(cookie_fileobject.mode == "rb")
-    saved_data = cPickle.load(cookie_fileobject)
-    if not ("jar" in saved_data and "requestsversion" in saved_data):
-        raise Exception("No Cookies in this pickle jar")
-    if _is_new_requests_lib():
-        if saved_data["requestsversion"] is None or saved_data["requestsversion"] > requests.__build__:
-            raise Exception("given cookie file is not compatible")
-    else:
-        if not saved_data["requestsversion"] is None:
-            raise Exception("given cookie file is not compatible")
-    cookie_jar_ = saved_data["jar"]
+#### Login / Requests-Lib Decorator ####
+
+class GCSession(object):
+    def __init__(self, gc_username, gc_password, cookie_session_filename, ask_pass_handler):
+        self.logged_in = 0 #0: no, 1: yes but session may have time out, 2: yes
+        self.ask_pass_handler = ask_pass_handler
+        self.gc_username = gc_username
+        self.gc_password = gc_password
+        self.cookie_session_filename = cookie_session_filename
+        self.user_agent_ = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.2) Gecko/20100101 Firefox/10.0.2"
+        if _is_new_requests_lib():
+            self.cookie_jar_ = {}
+        else:
+            import cookielib
+            self.cookie_jar_ = cookielib.CookieJar()
+
+    def _save_cookie_login(self, cookie_fileobject):
+        global cookie_jar_
+        saved_data = {
+            "jar":self.cookie_jar_,
+            "requestsversion": requests.__build__ if  "__build__" in requests.__dict__ else None
+        }
+        assert(cookie_fileobject.mode == "wb")
+        cPickle.dump(saved_data, cookie_fileobject, 2)
+
+    def _load_cookie_login(self, cookie_fileobject):
+        assert(cookie_fileobject.mode == "rb")
+        saved_data = cPickle.load(cookie_fileobject)
+        if not ("jar" in saved_data and "requestsversion" in saved_data):
+            raise Exception("No Cookies in this pickle jar")
+        if _is_new_requests_lib():
+            if saved_data["requestsversion"] is None or saved_data["requestsversion"] > requests.__build__:
+                raise Exception("given cookie file is not compatible")
+        else:
+            if not saved_data["requestsversion"] is None:
+                raise Exception("given cookie file is not compatible")
+        self.cookie_jar_ = saved_data["jar"]
+
+    def _haveUserPass(self):
+        return type(self.gc_username) in types.StringTypes and type(self.gc_password) in types.StringTypes
+            
+    def _askUserPass(self):
+        if isinstance(self.ask_pass_handler, types.FunctionType):
+            try:
+                (self.gc_username, self.gc_password) = self.ask_pass_handler()
+            except Exception, e:
+                if __debug__:
+                    print e
+                return False
+        return self._haveUserPass()
+    
+    def login(self):
+        if not type(self.gc_username) in types.StringTypes or not type(self.gc_password) in types.StringTypes:
+            raise Exception("Login called without known username/passwort")
+        remember_me = type(self.cookie_session_filename) in types.StringTypes
+        post_data = {
+            "__EVENTTARGET":"",
+            "__EVENTARGUMENT":"",
+            "ctl00$ContentBody$tbUsername":self.gc_username,
+            "ctl00$ContentBody$tbPassword":self.gc_password,
+            "ctl00$ContentBody$btnSignIn":"Login"
+        }
+        if remember_me:
+            post_data["ctl00$ContentBody$cbRememberMe"] = "1"
+        r = requests.post(gc_auth_uri_, data = post_data, allow_redirects = False, cookies = self.cookie_jar_, headers = {"User-Agent":self.user_agent_})
+        login_ok = False
+        if _is_new_requests_lib():
+            self.cookie_jar_ = r.cookies
+            login_ok = r.error is None and "userid" in r.cookies
+        else:
+            login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (usr)) > -1
+        if not login_ok:
+            return False
+        if remember_me:
+            self._save_cookie_login(_open_config_file(self.cookie_session_filename,"wb"))
+        return login_ok
+
+    def invalidate_cookie(self):
+        if  type(self.cookie_session_filename) in types.StringTypes:
+            _delete_config_file(self.cookie_session_filename)
+
+    def loadSessionCookie(self):
+        if not type(self.cookie_session_filename) in types.StringTypes:
+            return False
+        try:
+            self._load_cookie_login(_open_config_file(self.cookie_session_filename,"rb"))
+            return True
+        except:
+            self.invalidate_cookie()
+            return False
+
+    def _check_login(self):
+        if self.logged_in > 0:
+            return True
+        if self.loadSessionCookie():
+            self.logged_in = 1
+            return True
+        if not self._haveUserPass():
+            if not self._askUserPass():
+                raise NotLoggedInError("Don't know login credentials and can't ask user interactively")
+        if not self.login():
+            raise NotLoggedInError("login failed, wrong username/password")
+        self.logged_in = 2
+        return True
+
+    def _check_is_session_valid(self, content):
+        if content.find("id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0:
+            self.invalidate_cookie()
+            self.logged_in = 0
+            return False
+        return True
+        
+    def req_wrap(self, reqfun):
+        attempts = 2
+        while attempts > 0:
+            self._check_login()
+            attempts -= 1
+            r = reqfun(self.cookie_jar_)
+            if r.error is None:
+                if self._check_is_session_valid(r.content):
+                    return r
+            else:
+                raise HTTPError("Recieved HTTP Error "+str(r.status_code))
+        raise NotLoggedInError("Request to geocaching.com failed")
+
+    def req_get(self, uri):
+        return self.req_wrap(lambda cookies: requests.get(uri, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
+
+    def req_post(self, uri, post_data, files = None):
+        return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = files, allow_redirects = True, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
+    
+
+_gc_session_ = False
+gc_username = None
+gc_password = None
+be_interactive = True
+
+def getDefaultInteractiveGCSession():
+    global _gc_session_
+    if not isinstance(_gc_session_, GCSession):
+        _gc_session_ = GCSession( gc_username = gc_username, gc_password = gc_password, cookie_session_filename = auth_cookie_default_filename_, ask_pass_handler = _ask_usr_pwd if be_interactive else None)
+    return _gc_session_
 
 
 #### Library Functions ####
-
-def login(usr, pwd, remember=False):
-    global cookie_jar_
-    post_data = {
-        "__EVENTTARGET":"",
-        "__EVENTARGUMENT":"",
-        "ctl00$ContentBody$tbUsername":usr,
-        "ctl00$ContentBody$tbPassword":pwd,
-        "ctl00$ContentBody$btnSignIn":"Login"
-    }
-    if remember:
-        post_data["ctl00$ContentBody$cbRememberMe"]="1"
-    r = requests.post(gc_auth_uri_, data=post_data, allow_redirects=False, cookies=cookie_jar_, headers={"User-Agent":user_agent_})
-    login_ok = False
-    if _is_new_requests_lib():
-        cookie_jar_ = r.cookies
-        login_ok = r.error is None and "userid" in r.cookies
-    else:
-        login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (usr)) > -1
-    if not login_ok:
-        raise GeocachingSiteError("login failed, wrong username/password")
-
-def autologin_invalidate_cookie():
-    _delete_config_file(auth_cookie_default_filename_)    
-
-def autologin_interactive_save_cookie(be_interactive = True):
-    global cookie_jar_
-    try:
-        _load_cookie_login(_open_config_file(auth_cookie_default_filename_,"rb"))
-        #TODO: check if session has timed out or cookie expired
-    except:
-        if be_interactive:
-            (usr,pwd) = _ask_usr_pwd()
-            login(usr, pwd, True)
-            _save_cookie_login(_open_config_file(auth_cookie_default_filename_,"wb"))
-        else:
-            autologin_invalidate_cookie()
-            raise Exception("Missing or invalid login-cookie-file")
-
+       
 def download_gpx(gccode, dstdir):
-    global cookie_jar_
+    gcsession = getDefaultInteractiveGCSession()
     uri = gc_wp_uri_ % gccode.upper()
-    post_data={"ctl00$ContentBody$btnGPXDL":"GPX file"}
+    post_data = {"ctl00$ContentBody$btnGPXDL":"GPX file"}
     post_data.update(_parse_for_hidden_inputs(uri))
-    r = requests.post(uri, data=post_data, allow_redirects=True, cookies=cookie_jar_, headers={"User-Agent":user_agent_, "Referer":uri})
-    if r.error is None:
-        cd_header = "attachment; filename="
-        if "content-disposition" in r.headers and r.headers["content-disposition"].startswith(cd_header):
-            filename=r.headers["content-disposition"][len(cd_header):]
-            with open(os.path.join(dstdir, filename), "wb") as fh:
-                fh.write(r.content)
-                return filename
-        raise GeocachingSiteError("Invalid gccode or other geocaching.com error")
-    raise HTTPError("Recieved HTTP Error "+str(r.status_code))
-
+    r = gcsession.req_post(uri, post_data)
+    cd_header = "attachment; filename="
+    if "content-disposition" in r.headers and r.headers["content-disposition"].startswith(cd_header):
+        filename = r.headers["content-disposition"][len(cd_header):]
+        with open(os.path.join(dstdir, filename), "wb") as fh:
+            fh.write(r.content)
+            return filename
+    raise GeocachingSiteError("Invalid gccode or other geocaching.com error")
+ 
 def get_pq_names():
-    global cookie_jar_
+    gcsession = getDefaultInteractiveGCSession()
     uri = gc_pqlist_uri_
-    r = requests.get(uri, cookies=cookie_jar_, headers={"User-Agent":user_agent_, "Referer":uri})
-    if r.error is None:
-        rv = {}
-        tree = etree.fromstring(r.content, parser_)
-        for a_elem in tree.findall(".//a[@href]"):
-            if a_elem.get("href").startswith(gc_pqdownload_path_ % ""):
-                rv[a_elem.text.strip()] = a_elem.get("href")[len(gc_pqdownload_path_ % ""):]
-        return rv
-    raise HTTPError("Recieved HTTP Error "+str(r.status_code))
+    r = gcsession.req_get(uri)
+    rv = {}
+    tree = etree.fromstring(r.content, parser_)
+    for a_elem in tree.findall(".//a[@href]"):
+        if a_elem.get("href").startswith(gc_pqdownload_path_ % ""):
+            rv[a_elem.text.strip()] = a_elem.get("href")[len(gc_pqdownload_path_ % ""):]
+    return rv
 
 def download_pq(pquid, dstdir):
-    global cookie_jar_
+    gcsession = getDefaultInteractiveGCSession()
     uri = gc_pqdownload_host_ + gc_pqdownload_path_ % pquid
-    r = requests.get(uri, cookies=cookie_jar_)
-    if r.error is None:
-        cd_header = "attachment; filename="
-        if "content-disposition" in r.headers and r.headers["content-disposition"].startswith(cd_header):
-            filename=r.headers["content-disposition"][len(cd_header):]
-            with open(os.path.join(dstdir, filename),"wb") as fh:
-                fh.write(r.content)
-                return filename
-        raise GeocachingSiteError("Invalid PQ uid or other geocaching.com error")
-    raise HTTPError("Recieved HTTP Error "+str(r.status_code))
+    r = gcsession.req_get(uri)
+    cd_header = "attachment; filename="
+    if "content-disposition" in r.headers and r.headers["content-disposition"].startswith(cd_header):
+        filename = r.headers["content-disposition"][len(cd_header):]
+        with open(os.path.join(dstdir, filename),"wb") as fh:
+            fh.write(r.content)
+            return filename
+    raise GeocachingSiteError("Invalid PQ uid or other geocaching.com error")
 
-def upload_fieldnote(fieldnotefileObj, ignore_previous_logs=True):
-    global cookie_jar_
+def upload_fieldnote(fieldnotefileObj, ignore_previous_logs = True):
+    gcsession = getDefaultInteractiveGCSession()
     #<input id="ctl00_ContentBody_chkSuppressDate" type="checkbox" checked="checked" name="ctl00$ContentBody$chkSuppressDate">
     #<input id="ctl00_ContentBody_FieldNoteLoader" type="file" name="ctl00$ContentBody$FieldNoteLoader">
     #<input id="__EVENTTARGET" type="hidden" value="" name="__EVENTTARGET">
@@ -200,7 +272,7 @@ def upload_fieldnote(fieldnotefileObj, ignore_previous_logs=True):
         except:
             return False
     uri = gc_uploadfieldnotes_uri_
-    post_data={
+    post_data = {
           "__EVENTTARGET":"",
           "__EVENTARGUMENT":"",
           "ctl00$ContentBody$btnUpload":"Upload Field Note"
@@ -208,12 +280,10 @@ def upload_fieldnote(fieldnotefileObj, ignore_previous_logs=True):
     if ignore_previous_logs:
         post_data["ctl00$ContentBody$chkSuppressDate"] = "1"
     post_files = {"ctl00$ContentBody$FieldNoteLoader" : fieldnotefileObj}
-    r = requests.post(uri, data=post_data, files=post_files, allow_redirects=True, cookies=cookie_jar_, headers={"User-Agent":user_agent_, "Referer":uri})
-    if r.error is None:
-        tree = etree.fromstring(r.content, parser_)
-        successdiv = tree.find(".//div[@id='ctl00_ContentBody_regSuccess']")
-        if not successdiv is None:
-            return successdiv.text.strip()
-        else:
-            raise GeocachingSiteError("geocaching.com did not like the provided file %s" % fieldnotefileObj.name)
-    raise HTTPError("Recieved HTTP Error "+str(r.status_code))
+    r = gcsession.req_post(uri, post_data, files = post_files)
+    tree = etree.fromstring(r.content, parser_)
+    successdiv = tree.find(".//div[@id='ctl00_ContentBody_regSuccess']")
+    if not successdiv is None:
+        return successdiv.text.strip()
+    else:
+        raise GeocachingSiteError("geocaching.com did not like the provided file %s" % fieldnotefileObj.name)
