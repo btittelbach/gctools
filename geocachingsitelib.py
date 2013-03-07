@@ -131,7 +131,7 @@ class GCSession(object):
     def login(self):
         if not type(self.gc_username) in types.StringTypes or not type(self.gc_password) in types.StringTypes:
             raise Exception("Login called without known username/passwort")
-        remember_me = type(self.cookie_session_filename) in types.StringTypes
+        remember_me = type(self.cookie_session_filename) in types.StringTypes and _is_new_requests_lib()
         post_data = {
             "__EVENTTARGET":"",
             "__EVENTARGUMENT":"",
@@ -147,7 +147,7 @@ class GCSession(object):
             self.cookie_jar_ = r.cookies
             login_ok = r.error is None and "userid" in r.cookies
         else:
-            login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (usr)) > -1
+            login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (self.gc_username)) > -1
         if not login_ok:
             return False
         if remember_me:
