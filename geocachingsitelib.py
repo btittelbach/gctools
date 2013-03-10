@@ -43,6 +43,13 @@ class NotLoggedInError(Exception):
 def _is_new_requests_lib():
     return "__build__" in requests.__dict__ and requests.__build__ >= 0x000704
 
+def _new_cookie_jar():
+    if _is_new_requests_lib():
+        return {}
+    else:
+        import cookielib
+        return cookielib.CookieJar()
+
 parser_ = etree.HTMLParser(encoding = "utf-8")
 
 def _ask_usr_pwd():
@@ -87,11 +94,7 @@ class GCSession(object):
         self.gc_password = gc_password
         self.cookie_session_filename = cookie_session_filename
         self.user_agent_ = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.2) Gecko/20100101 Firefox/10.0.2"
-        if _is_new_requests_lib():
-            self.cookie_jar_ = {}
-        else:
-            import cookielib
-            self.cookie_jar_ = cookielib.CookieJar()
+        self.cookie_jar_ = _new_cookie_jar()
 
     def _save_cookie_login(self, cookie_fileobject):
         global cookie_jar_
@@ -155,6 +158,7 @@ class GCSession(object):
         return login_ok
 
     def invalidate_cookie(self):
+        self.cookie_jar_ = _new_cookie_jar()
         if  type(self.cookie_session_filename) in types.StringTypes:
             _delete_config_file(self.cookie_session_filename)
 
