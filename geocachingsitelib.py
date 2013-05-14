@@ -43,6 +43,14 @@ class NotLoggedInError(Exception):
 def _is_new_requests_lib():
     return "__build__" in requests.__dict__ and requests.__build__ >= 0x000704
 
+def _did_request_succeed(r):
+    if "error" in r.__dict__:
+        return r.error is None
+    elif "status_code" in r.__dict__:
+        return r.status_code == requests.codes.ok
+    else:
+        assert False
+
 def _new_cookie_jar():
     if _is_new_requests_lib():
         return {}
@@ -64,7 +72,7 @@ def _parse_for_hidden_inputs(uri):
     gcsession = getDefaultInteractiveGCSession()
     post_data = {}
     r = gcsession.req_get(uri)
-    if r.error is None:
+    if _did_request_succeed(r):
         tree = etree.fromstring(r.content, parser_)
         for input_elem in tree.findall(".//input[@type='hidden']"):
             post_data[input_elem.get("name")] = input_elem.get("value")
@@ -148,9 +156,9 @@ class GCSession(object):
         login_ok = False
         if _is_new_requests_lib():
             self.cookie_jar_ = r.cookies
-            login_ok = r.error is None and "userid" in r.cookies
+            login_ok = _did_request_succeed(r) and "userid" in r.cookies
         else:
-            login_ok = r.error is None and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (self.gc_username)) > -1
+            login_ok = _did_request_succeed(r) and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (self.gc_username)) > -1
         if not login_ok:
             return False
         if remember_me:
@@ -199,7 +207,7 @@ class GCSession(object):
             self._check_login()
             attempts -= 1
             r = reqfun(self.cookie_jar_)
-            if r.error is None:
+            if _did_request_succeed(r):
                 if self._check_is_session_valid(r.content):
                     return r
             else:
