@@ -6,16 +6,21 @@ import sys, os
 import getopt
 from lxml import etree
 import re
+from collections import namedtuple
+
+WPTInfo = namedtuple("WPTInfo",["lat","lon","shortdesc","longdesc","type"])
+empty_wptinfo_ = WPTInfo(*((None,)*5))
+
 try:
   import wx
 
 # Special GUI for mittene and alopexx :-)
   class ChngWPTDialog(wx.Dialog):
-    def __init__(self, parent, title, shortdesc=u"", longdesc=u""):
+    def __init__(self, parent, title, wptinfo=empty_wptinfo_):
       super(ChngWPTDialog, self).__init__(parent=parent, title=title, size=(400, 650))
       sb_type = wx.StaticBox(self, label='Change Cache-Type')
       sbs_type = wx.StaticBoxSizer(sb_type, orient=wx.VERTICAL)
-      self.type_cmbbox = wx.ComboBox(self, choices=[""]+cache_type_map.values(), style=wx.CB_DROPDOWN)
+      self.type_cmbbox = wx.ComboBox(self, choices=[""]+cache_type_map.values(), style=wx.CB_DROPDOWN, value=wptinfo.type if wptinfo.type else u"")
       sbs_type.Add(self.type_cmbbox, 0, border=6, flag=wx.ALL|wx.ALIGN_RIGHT|wx.EXPAND)
 
       self.sb_coord = wx.StaticBox(self, label='Change Coordinates')
@@ -28,14 +33,14 @@ try:
       sb_shortdesc = wx.StaticBox(self, label='Short-Description (HTML)')
       sbs_shortdesc = wx.StaticBoxSizer(sb_shortdesc, orient=wx.VERTICAL)
       self.shortdesc_chkbox = wx.CheckBox(self, -1, 'Change Short-Description')
-      self.shortdesc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE,value=shortdesc)
+      self.shortdesc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE,value=wptinfo.shortdesc if wptinfo.shortdesc else u"")
       sbs_shortdesc.Add(self.shortdesc_chkbox, 0, border=5, flag=wx.TOP|wx.LEFT|wx.RIGHT)
       sbs_shortdesc.Add(self.shortdesc_txt, 1, border=5, flag=wx.EXPAND|wx.ALL)
 
       sb_desc = wx.StaticBox(self, label='Description (HTML)')
       sbs_desc = wx.StaticBoxSizer(sb_desc, orient=wx.VERTICAL)
       self.desc_chkbox = wx.CheckBox(self, -1, 'Change Description')
-      self.desc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE, value=longdesc)
+      self.desc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE, value=wptinfo.longdesc if wptinfo.longdesc else u"")
       sbs_desc.Add(self.desc_chkbox, 0, border=5, flag=wx.TOP|wx.LEFT|wx.RIGHT)
       sbs_desc.Add(self.desc_txt, 1, border=5, flag=wx.EXPAND|wx.ALL)
 
@@ -78,7 +83,7 @@ try:
       new_type = self.type_cmbbox.GetValue().strip() if self.type_cmbbox.GetValue().strip() != "" else None
       new_short_description = self.shortdesc_txt.GetValue() if self.shortdesc_chkbox.IsChecked() else None
       new_description = self.desc_txt.GetValue() if self.desc_chkbox.IsChecked() else None
-      return (new_latitude,new_longitude,new_short_description,new_description,new_type)
+      return WPTInfo(lat=new_latitude,lon=new_longitude,shortdesc=new_short_description,longdesc=new_description,type=new_type)
 
   gui_available_ = True
 except ImportError:
@@ -144,11 +149,7 @@ except getopt.GetoptError as e:
   usage()
   sys.exit(1)
 
-new_latitude_ = None
-new_longitude_ = None
-new_short_description_ = None
-new_description_ = None
-new_type_ = None
+new_wptinfo_ = empty_wptinfo_
 savedir_ = None
 autorename_ = False
 display_dialog_ = False
@@ -163,15 +164,15 @@ for o, a in opts:
   elif o in "--gui":
     display_dialog_=True
   elif o in "--coordinates":
-    (new_latitude_,new_longitude_) = parseCoords(a.strip())
+    (new_wptinfo_.lat,new_wptinfo_.lon) = parseCoords(a.strip())
   elif o in "--latitude":
-    new_latitude_ = parseSingleCoordinate(a)
+    new_wptinfo_.lat = parseSingleCoordinate(a)
   elif o in "--longitude":
-    new_longitude_ = parseSingleCoordinate(a)
+    new_wptinfo_.lon = parseSingleCoordinate(a)
   elif o in "--shortdescription":
-    new_short_description_=a
+    new_wptinfo_.shortdesc=a
   elif o in "--description":
-    new_description_=a
+    new_wptinfo_.longdesc=a
   elif o in "--savedir":
     if os.path.isdir(a):
       savedir_=a
@@ -179,28 +180,28 @@ for o, a in opts:
       print "Not a directory:", a
   elif o in "--type":
     if a in cache_type_map:
-      new_type_=cache_type_map[a]
+      new_wptinfo_.type=cache_type_map[a]
     else:
-      new_type_=a
+      new_wptinfo_.type=a
       sys.stdout.write("Warning: Cachetype unknown, using raw string.")
-    print "New Cachetype:", new_type_
+    print "New Cachetype:", new_wptinfo_.type
 
 
 if len(files) <1:
   usage()
   sys.exit()
 
-if display_dialog_ or new_latitude_ == new_longitude_ == new_description_ == new_type_ == None:
+if display_dialog_ or new_wptinfo_.lat == new_wptinfo_.lon == new_wptinfo_.longdesc == new_wptinfo_.type == None:
   if gui_available_:
     wxapp = wx.App()
     dial = ChngWPTDialog(None, "Change "+",".join(files))
     if dial.ShowModal() == wx.ID_OK:
-      (new_latitude_,new_longitude_,new_short_description_,new_description_,new_type_) = dial.getInput()
+      new_wptinfo_ = dial.getInput()
     dial.Destroy()
   else:
     print("wyPython not installed: GUI not available")
 
-print changedCoordsString(new_latitude_, new_longitude_)
+print changedCoordsString(new_wptinfo_.lat, new_wptinfo_.lon)
 
 for gpxfile in files:
   tree = None
@@ -212,41 +213,41 @@ for gpxfile in files:
 
   for wpt_elem in tree:
     if wpt_elem.tag[-6:] == "bounds":
-      if not new_latitude_ is None:
-        wpt_elem.set("minlat",str(new_latitude_))
-        wpt_elem.set("maxlat",str(new_latitude_))
-      if not new_longitude_ is None:
-        wpt_elem.set("minlon",str(new_longitude_))
-        wpt_elem.set("maxlon",str(new_longitude_))
+      if not new_wptinfo_.lat is None:
+        wpt_elem.set("minlat",str(new_wptinfo_.lat))
+        wpt_elem.set("maxlat",str(new_wptinfo_.lat))
+      if not new_wptinfo_.lon is None:
+        wpt_elem.set("minlon",str(new_wptinfo_.lon))
+        wpt_elem.set("maxlon",str(new_wptinfo_.lon))
 
     if wpt_elem.tag[-3:] == "wpt":
-      if not new_latitude_ is None:
-        wpt_elem.set("lat",str(new_latitude_))
+      if not new_wptinfo_.lat is None:
+        wpt_elem.set("lat",str(new_wptinfo_.lat))
         print("* updated latitude");
-      if not new_longitude_ is None:
-        wpt_elem.set("lon",str(new_longitude_))
+      if not new_wptinfo_.lon is None:
+        wpt_elem.set("lon",str(new_wptinfo_.lon))
         print("* updated longitude");
 
-      if autorename_ or not (new_description_ is None and new_type_ is None):
+      if autorename_ or not (new_wptinfo_.longdesc is None and new_wptinfo_.type is None):
         for cache_elem in wpt_elem:
           if cache_elem.tag[-7:] == "urlname":
             gcname = cache_elem.text
           elif cache_elem.tag[-4:] == "name":
             gccode = cache_elem.text
-          elif not new_type_ is None and cache_elem.tag[-4:] == "type":
-            cache_elem.text = "Geocache|"+new_type_
+          elif not new_wptinfo_.type is None and cache_elem.tag[-4:] == "type":
+            cache_elem.text = "Geocache|"+new_wptinfo_.type
             print("* updated cachetype");
           elif cache_elem.tag[-5:] == "cache":
             for desc_elem in cache_elem:
-              if not new_type_ is None and desc_elem.tag[-4:] == "type":
-                desc_elem.text = new_type_
-              elif not new_short_description_ is None and desc_elem.tag[-17:] == "short_description":
+              if not new_wptinfo_.type is None and desc_elem.tag[-4:] == "type":
+                desc_elem.text = new_wptinfo_.type
+              elif not new_wptinfo_.shortdesc is None and desc_elem.tag[-17:] == "short_description":
                 desc_elem.set("html","True")
-                desc_elem.text=new_short_description_
+                desc_elem.text=new_wptinfo_.shortdesc
                 print("* updated description with given html text");
-              elif not new_description_ is None and desc_elem.tag[-16:] == "long_description":
+              elif not new_wptinfo_.longdesc is None and desc_elem.tag[-16:] == "long_description":
                 desc_elem.set("html","True")
-                desc_elem.text=new_description_
+                desc_elem.text=new_wptinfo_.longdesc
                 print("* updated description with given html text");
       break
 
