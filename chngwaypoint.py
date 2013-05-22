@@ -142,6 +142,24 @@ def parseCoords(t):
 def changedCoordsString(new_latitude, new_longitude):
   return (u"New Latitude: %.4f" % new_latitude if not new_latitude is None else u"Latitude unchanged") +"  "+ ("New Longitude: %.4f" % new_longitude if not new_longitude is None else u"Longitude unchanged")
 
+def parseGPXFile(gpxfile):
+  with open(gpxfile, mode="rb") as f:
+    parser = etree.XMLParser()
+    tree = etree.parse(f,parser).getroot()
+  try:
+    wpt_elem = tree.find("{http://www.topografix.com/GPX/1/0}wpt",namespaces=tree.nsmap)
+    type_elem = wpt_elem.find("..//{http://www.groundspeak.com/cache/1/0}type",namespaces=tree.nsmap)
+    cachetype = (type_elem.text or '')
+    sdesc_elem = wpt_elem.find("..//{http://www.groundspeak.com/cache/1/0}short_description",namespaces=tree.nsmap)
+    ldesc_elem = wpt_elem.find("..//{http://www.groundspeak.com/cache/1/0}long_description",namespaces=tree.nsmap)
+    sdesc = (sdesc_elem.text or '') + '\n'.join([html.tostring(child) for child in sdesc_elem.iterchildren()])
+    ldesc = (ldesc_elem.text or '') + '\n'.join([html.tostring(child) for child in ldesc_elem.iterchildren()])
+    return WPTInfo(lat=float(wpt_elem.get("lat")),lon=float(wpt_elem.get("lon")),shortdesc=sdesc,longdesc=ldesc,type=cachetype)
+  except Exception, e:
+    print "GPX Parse Error:", e
+    return empty_wptinfo_
+
+
 try:
   opts, files = getopt.gnu_getopt(sys.argv[1:], "hrgc:k:d:t:s:", ["help","gui","rename","coordinates=","longitude=","latitude=","shortdescription=","description=","type=","savedir="])
 except getopt.GetoptError as e:
@@ -194,7 +212,9 @@ if len(files) <1:
 if display_dialog_ or new_wptinfo_.lat == new_wptinfo_.lon == new_wptinfo_.longdesc == new_wptinfo_.type == None:
   if gui_available_:
     wxapp = wx.App()
-    dial = ChngWPTDialog(None, "Change "+",".join(files))
+    dial = ChngWPTDialog(None, "Change "+",".join(files),
+        parseGPXFile(files[0]) if len(files) == 1 else empty_wptinfo_
+    )
     if dial.ShowModal() == wx.ID_OK:
       new_wptinfo_ = dial.getInput()
     dial.Destroy()
