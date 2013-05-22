@@ -125,7 +125,7 @@ def parseSingleCoordinate(t):
 
 RE_NSWECOORDS=re.compile(r"([NS+-].+)\s+([WEO+-].+)",re.IGNORECASE)
 RE_WENSCOORDS=re.compile(r"([WEO+-].+)\s+([NS+-].+)",re.IGNORECASE)
-RE_DECCOORDS=re.compile(r"((?:[+-]\s*)?\d+[.,]\d+)\s+((?:[+-]\s*)?\d+[.,]\d+)",re.IGNORECASE)
+RE_DECCOORDS=re.compile(r"((?:[+-]\s*)?\d+[.,]\d+)(?:\s+|\s*[,;]\s*)((?:[+-]\s*)?\d+[.,]\d+)",re.IGNORECASE)
 def parseCoords(t):
   coords=(None,None)
   m1 = RE_NSWECOORDS.search(t)
@@ -215,8 +215,10 @@ if display_dialog_ or new_wptinfo_.lat == new_wptinfo_.lon == new_wptinfo_.longd
     dial = ChngWPTDialog(None, "Change "+",".join(files),
         parseGPXFile(files[0]) if len(files) == 1 else empty_wptinfo_
     )
-    if dial.ShowModal() == wx.ID_OK:
-      new_wptinfo_ = dial.getInput()
+    if dial.ShowModal() != wx.ID_OK:
+      print "Abort selected"
+      sys.exit(1)
+    new_wptinfo_ = dial.getInput()
     dial.Destroy()
   else:
     print("wyPython not installed: GUI not available")
