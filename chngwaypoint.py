@@ -11,8 +11,8 @@ try:
 
 # Special GUI for mittene and alopexx :-)
   class ChngWPTDialog(wx.Dialog):
-    def __init__(self, parent, title):
-      super(ChngWPTDialog, self).__init__(parent=parent, title=title, size=(400, 550))
+    def __init__(self, parent, title, shortdesc=u"", longdesc=u""):
+      super(ChngWPTDialog, self).__init__(parent=parent, title=title, size=(400, 650))
       sb_type = wx.StaticBox(self, label='Change Cache-Type')
       sbs_type = wx.StaticBoxSizer(sb_type, orient=wx.VERTICAL)
       self.type_cmbbox = wx.ComboBox(self, choices=[""]+cache_type_map.values(), style=wx.CB_DROPDOWN)
@@ -25,10 +25,17 @@ try:
       self.sbs_coord.Add(self.coord_txt, 0, border=5, flag=wx.ALL|wx.EXPAND)
       self.sbs_coord.Add(self.coord_st, 0, border=6, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_RIGHT)
 
+      sb_shortdesc = wx.StaticBox(self, label='Short-Description (HTML)')
+      sbs_shortdesc = wx.StaticBoxSizer(sb_shortdesc, orient=wx.VERTICAL)
+      self.shortdesc_chkbox = wx.CheckBox(self, -1, 'Change Short-Description')
+      self.shortdesc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE,value=shortdesc)
+      sbs_shortdesc.Add(self.shortdesc_chkbox, 0, border=5, flag=wx.TOP|wx.LEFT|wx.RIGHT)
+      sbs_shortdesc.Add(self.shortdesc_txt, 1, border=5, flag=wx.EXPAND|wx.ALL)
+
       sb_desc = wx.StaticBox(self, label='Description (HTML)')
       sbs_desc = wx.StaticBoxSizer(sb_desc, orient=wx.VERTICAL)
       self.desc_chkbox = wx.CheckBox(self, -1, 'Change Description')
-      self.desc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+      self.desc_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE, value=longdesc)
       sbs_desc.Add(self.desc_chkbox, 0, border=5, flag=wx.TOP|wx.LEFT|wx.RIGHT)
       sbs_desc.Add(self.desc_txt, 1, border=5, flag=wx.EXPAND|wx.ALL)
 
@@ -43,12 +50,17 @@ try:
       frame_sizer = wx.BoxSizer(wx.VERTICAL)
       frame_sizer.Add(sbs_type, 3, flag=wx.ALL|wx.EXPAND, border=5)
       frame_sizer.Add(self.sbs_coord, 4, flag=wx.ALL|wx.EXPAND, border=5)
+      frame_sizer.Add(sbs_shortdesc, 5, flag=wx.ALL|wx.EXPAND, border=5)
       frame_sizer.Add(sbs_desc, 13, flag=wx.ALL|wx.EXPAND, border=5)
       frame_sizer.Add(button_sizer, flag = wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
       self.SetSizer(frame_sizer)
 
+      self.shortdesc_txt.Bind(wx.EVT_TEXT, self.OnChangeShortDesc)
       self.desc_txt.Bind(wx.EVT_TEXT, self.OnChangeDesc)
       self.coord_txt.Bind(wx.EVT_TEXT, self.OnChangeCoord)
+
+    def OnChangeShortDesc(self, event):
+      self.shortdesc_chkbox.SetValue(True)
 
     def OnChangeDesc(self, event):
       self.desc_chkbox.SetValue(True)
@@ -64,8 +76,9 @@ try:
     def getInput(self):
       (new_latitude,new_longitude) = parseCoords(self.coord_txt.GetValue().strip())
       new_type = self.type_cmbbox.GetValue().strip() if self.type_cmbbox.GetValue().strip() != "" else None
+      new_short_description = self.shortdesc_txt.GetValue() if self.shortdesc_chkbox.IsChecked() else None
       new_description = self.desc_txt.GetValue() if self.desc_chkbox.IsChecked() else None
-      return (new_latitude,new_longitude,new_description,new_type)
+      return (new_latitude,new_longitude,new_short_description,new_description,new_type)
 
   gui_available_ = True
 except ImportError:
@@ -78,7 +91,8 @@ def usage():
   print("  -c <coords>           | --coord <coords> Change Coordinates")
   print("                          --lat <latitude> Change Latitude")
   print("                          --lon <longitud> Change Longitude")
-  print("  -d <desc>             | --desc <desc>    Change Coordinates")
+  print("  -k <shortdesc>        | --shortdesc <tx> Change Short-Description")
+  print("  -d <desc>             | --desc <desc>    Change Description")
   print("  -t [multi|tradi|myst] | --type <type>    Change Type")
   print("  -s <dir>              | --savedir <dir>  Save to directory")
   print("  -r                    | --rename         Rename to GCCODE_name.gpx")
@@ -124,7 +138,7 @@ def changedCoordsString(new_latitude, new_longitude):
   return (u"New Latitude: %.4f" % new_latitude if not new_latitude is None else u"Latitude unchanged") +"  "+ ("New Longitude: %.4f" % new_longitude if not new_longitude is None else u"Longitude unchanged")
 
 try:
-  opts, files = getopt.gnu_getopt(sys.argv[1:], "hrgc:d:t:s:", ["help","gui","rename","coordinates=","longitude=","latitude=","description=","type=","savedir="])
+  opts, files = getopt.gnu_getopt(sys.argv[1:], "hrgc:k:d:t:s:", ["help","gui","rename","coordinates=","longitude=","latitude=","shortdescription=","description=","type=","savedir="])
 except getopt.GetoptError as e:
   print "ERROR: Invalid Option: " +str(e)
   usage()
@@ -132,13 +146,14 @@ except getopt.GetoptError as e:
 
 new_latitude_ = None
 new_longitude_ = None
+new_short_description_ = None
 new_description_ = None
 new_type_ = None
 savedir_ = None
 autorename_ = False
 display_dialog_ = False
 
-cache_type_map={"multi":"Multi-cache","tradi":"Traditional Cache","myst":"Unknown Cache"}
+cache_type_map={"multi":"Multi-cache","tradi":"Traditional Cache","myst":"Unknown Cache","cito":"Cache In Trash Out Event","event":"Event Cache","megaevent":"Mega-Event Cache","letterbox":"Letterbox Hybrid","earth":"Earthcache"}
 for o, a in opts:
   if o in "--help":
     usage()
@@ -153,6 +168,8 @@ for o, a in opts:
     new_latitude_ = parseSingleCoordinate(a)
   elif o in "--longitude":
     new_longitude_ = parseSingleCoordinate(a)
+  elif o in "--shortdescription":
+    new_short_description_=a
   elif o in "--description":
     new_description_=a
   elif o in "--savedir":
@@ -178,7 +195,7 @@ if display_dialog_ or new_latitude_ == new_longitude_ == new_description_ == new
     wxapp = wx.App()
     dial = ChngWPTDialog(None, "Change "+",".join(files))
     if dial.ShowModal() == wx.ID_OK:
-      (new_latitude_,new_longitude_,new_description_,new_type_) = dial.getInput()
+      (new_latitude_,new_longitude_,new_short_description_,new_description_,new_type_) = dial.getInput()
     dial.Destroy()
   else:
     print("wyPython not installed: GUI not available")
@@ -223,6 +240,10 @@ for gpxfile in files:
             for desc_elem in cache_elem:
               if not new_type_ is None and desc_elem.tag[-4:] == "type":
                 desc_elem.text = new_type_
+              elif not new_short_description_ is None and desc_elem.tag[-17:] == "short_description":
+                desc_elem.set("html","True")
+                desc_elem.text=new_short_description_
+                print("* updated description with given html text");
               elif not new_description_ is None and desc_elem.tag[-16:] == "long_description":
                 desc_elem.set("html","True")
                 desc_elem.text=new_description_
