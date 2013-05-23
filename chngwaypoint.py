@@ -91,7 +91,7 @@ except ImportError:
 
 def usage():
   print("Sytax:")
-  print("       %s [options] <gpx-file>" % (sys.argv[0]))
+  print("       %s [options] <gpx-file> [more gpx files ...]" % (sys.argv[0]))
   print("Options:")
   print("  -c <coords>           | --coord <coords> Change Coordinates")
   print("                          --lat <latitude> Change Latitude")
