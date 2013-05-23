@@ -9,10 +9,6 @@ import os
 import getopt
 import geocachingsitelib as gc
 
-destination_dir_ = os.path.curdir
-gc_username_ = None
-gc_password_ = None
-
 def usage():
     print "Sytax:"
     print "       [%s -u <user> -p <pass>] geocache_visits.txt" % (sys.argv[0])

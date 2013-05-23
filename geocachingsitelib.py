@@ -47,7 +47,7 @@ def _did_request_succeed(r):
     if "error" in r.__dict__:
         return r.error is None
     elif "status_code" in r.__dict__:
-        return r.status_code == requests.codes.ok
+        return r.status_code in [requests.codes.ok, 302]
     else:
         assert False
 
@@ -128,7 +128,7 @@ class GCSession(object):
 
     def _haveUserPass(self):
         return type(self.gc_username) in types.StringTypes and type(self.gc_password) in types.StringTypes
-            
+
     def _askUserPass(self):
         if isinstance(self.ask_pass_handler, types.FunctionType):
             try:
@@ -138,7 +138,7 @@ class GCSession(object):
                     print e
                 return False
         return self._haveUserPass()
-    
+
     def login(self):
         if not type(self.gc_username) in types.StringTypes or not type(self.gc_password) in types.StringTypes:
             raise Exception("Login called without known username/passwort")
@@ -200,7 +200,7 @@ class GCSession(object):
             self.logged_in = 0
             return False
         return True
-        
+
     def req_wrap(self, reqfun):
         attempts = 2
         while attempts > 0:
@@ -219,7 +219,7 @@ class GCSession(object):
 
     def req_post(self, uri, post_data, files = None):
         return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = files, allow_redirects = True, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
-    
+
 
 _gc_session_ = False
 gc_username = None
@@ -234,7 +234,7 @@ def getDefaultInteractiveGCSession():
 
 
 #### Library Functions ####
-       
+
 def download_gpx(gccode, dstdir):
     gcsession = getDefaultInteractiveGCSession()
     uri = gc_wp_uri_ % gccode.upper()
@@ -248,7 +248,7 @@ def download_gpx(gccode, dstdir):
             fh.write(r.content)
             return filename
     raise GeocachingSiteError("Invalid gccode or other geocaching.com error")
- 
+
 def get_pq_names():
     gcsession = getDefaultInteractiveGCSession()
     uri = gc_pqlist_uri_
