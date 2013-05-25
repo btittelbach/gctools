@@ -218,7 +218,7 @@ class GCSession(object):
         return self.req_wrap(lambda cookies: requests.get(uri, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
     def req_post(self, uri, post_data, files = None):
-        return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = files, allow_redirects = True, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
+        return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = files, allow_redirects = False, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
 
 _gc_session_ = False
