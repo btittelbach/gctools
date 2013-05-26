@@ -195,7 +195,7 @@ class GCSession(object):
         return True
 
     def _check_is_session_valid(self, content):
-        if content.find("id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0:
+        if content.find("id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0 or content.find('<a id="hlSignIn" accesskey="s" title="Sign In" class="SignInLink" href="/login/">Sign In') >= 0:
             self.invalidate_cookie()
             self.logged_in = 0
             return False
