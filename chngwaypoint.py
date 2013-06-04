@@ -182,15 +182,16 @@ for o, a in opts:
   elif o in "--gui":
     display_dialog_=True
   elif o in "--coordinates":
-    (new_wptinfo_.lat,new_wptinfo_.lon) = parseCoords(a.strip())
+    (lat,lon) = parseCoords(a.strip())
+    new_wptinfo_ = WPTInfo(lat=lat, lon=lon, shortdesc=new_wptinfo_.shortdesc, longdesc=new_wptinfo_.longdesc, type=new_wptinfo_.type)
   elif o in "--latitude":
-    new_wptinfo_.lat = parseSingleCoordinate(a)
+    new_wptinfo_ = WPTInfo(lat=parseSingleCoordinate(a), lon=lon, shortdesc=new_wptinfo_.shortdesc, longdesc=new_wptinfo_.longdesc, type=new_wptinfo_.type)
   elif o in "--longitude":
-    new_wptinfo_.lon = parseSingleCoordinate(a)
-  elif o in "--shortdescription":
-    new_wptinfo_.shortdesc=a
+    new_wptinfo_ = WPTInfo(lat=lat, lon=parseSingleCoordinate(a), shortdesc=new_wptinfo_.shortdesc, longdesc=new_wptinfo_.longdesc, type=new_wptinfo_.type)
+  elif o in "--shortdescription" or o == "-k":
+    new_wptinfo_ = WPTInfo(lat=new_wptinfo_.lat, lon=new_wptinfo_.lon, shortdesc=a, longdesc=new_wptinfo_.longdesc, type=new_wptinfo_.type)
   elif o in "--description":
-    new_wptinfo_.longdesc=a
+    new_wptinfo_ = WPTInfo(lat=new_wptinfo_.lat, lon=new_wptinfo_.lon, shortdesc=new_wptinfo_.shortdesc, longdesc=a, type=new_wptinfo_.type)
   elif o in "--savedir":
     if os.path.isdir(a):
       savedir_=a
@@ -198,9 +199,9 @@ for o, a in opts:
       print "Not a directory:", a
   elif o in "--type":
     if a in cache_type_map:
-      new_wptinfo_.type=cache_type_map[a]
+      new_wptinfo_ = WPTInfo(lat=new_wptinfo_.lat, lon=new_wptinfo_.lon, shortdesc=new_wptinfo_.shortdesc, longdesc=new_wptinfo_.longdesc,type=cache_type_map[a])
     else:
-      new_wptinfo_.type=a
+      new_wptinfo_ = WPTInfo(lat=new_wptinfo_.lat, lon=new_wptinfo_.lon, shortdesc=new_wptinfo_.shortdesc, longdesc=new_wptinfo_.longdesc,type=a)
       sys.stdout.write("Warning: Cachetype unknown, using raw string.")
     print "New Cachetype:", new_wptinfo_.type
 
@@ -250,7 +251,7 @@ for gpxfile in files:
         wpt_elem.set("lon",str(new_wptinfo_.lon))
         print("* updated longitude");
 
-      if autorename_ or not (new_wptinfo_.longdesc is None and new_wptinfo_.type is None):
+      if autorename_ or not (new_wptinfo_.longdesc is None and new_wptinfo_.type is None and new_wptinfo_.shortdesc is None):
         for cache_elem in wpt_elem:
           if cache_elem.tag[-7:] == "urlname":
             gcname = cache_elem.text
@@ -266,11 +267,11 @@ for gpxfile in files:
               elif not new_wptinfo_.shortdesc is None and desc_elem.tag[-17:] == "short_description":
                 desc_elem.set("html","True")
                 desc_elem.text=new_wptinfo_.shortdesc
-                print("* updated description with given html text");
+                print("* updated short-description with given html text");
               elif not new_wptinfo_.longdesc is None and desc_elem.tag[-16:] == "long_description":
                 desc_elem.set("html","True")
                 desc_elem.text=new_wptinfo_.longdesc
-                print("* updated description with given html text");
+                print("* updated long-description with given html text");
       break
 
   data = etree.tostring(tree,method="xml",xml_declaration=True,encoding="utf-8")
