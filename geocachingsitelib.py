@@ -21,6 +21,7 @@ gc_wp_uri_ = "http://www.geocaching.com/seek/cache_details.aspx?wp=%s"
 gc_pqlist_uri_ = "http://www.geocaching.com/pocket/default.aspx"
 gc_pqdownload_host_ = "http://www.geocaching.com"
 gc_pqdownload_path_ = '/pocket/downloadpq.ashx?g=%s'
+gc_debug = False
 
 default_config_dir_ = os.path.join(os.path.expanduser('~'),".local","share","gctools")
 auth_cookie_default_filename_ = "gctools_cookies"
@@ -39,6 +40,12 @@ class NotLoggedInError(Exception):
 
 
 #### Internal Helper Functions ####
+
+def _debug_print(context,*args):
+    if gc_debug:
+        sys.stderr.write("\n\n=============== %s ===============\n" % context)
+        sys.stderr.write(", ".join(map(unicode,args)))
+        sys.stderr.write("\n")
 
 def _is_new_requests_lib():
     return "__build__" in requests.__dict__ and requests.__build__ >= 0x000704
@@ -134,8 +141,7 @@ class GCSession(object):
             try:
                 (self.gc_username, self.gc_password) = self.ask_pass_handler()
             except Exception, e:
-                if __debug__:
-                    print e
+                _debug_print("_askUserPass",e)
                 return False
         return self._haveUserPass()
 
@@ -153,6 +159,7 @@ class GCSession(object):
         if remember_me:
             post_data["ctl00$ContentBody$cbRememberMe"] = "1"
         r = requests.post(gc_auth_uri_, data = post_data, allow_redirects = False, cookies = self.cookie_jar_, headers = {"User-Agent":self.user_agent_})
+        _debug_print("login",r.content.decode("utf-8"))
         login_ok = False
         if _is_new_requests_lib():
             self.cookie_jar_ = r.cookies
@@ -207,6 +214,7 @@ class GCSession(object):
             self._check_login()
             attempts -= 1
             r = reqfun(self.cookie_jar_)
+            _debug_print("req_wrap",r.content.decode("utf-8"))
             if _did_request_succeed(r):
                 if self._check_is_session_valid(r.content):
                     return r
@@ -295,6 +303,7 @@ def upload_fieldnote(fieldnotefileObj, ignore_previous_logs = True):
     r = gcsession.req_post(uri, post_data, files = post_files)
     tree = etree.fromstring(r.content, parser_)
     successdiv = tree.find(".//div[@id='ctl00_ContentBody_regSuccess']")
+    _debug_print("upload_fieldnote",type(tree),type(successdiv),etree.tostring(successdiv,encoding="utf-8"))
     if not successdiv is None:
         return successdiv.text.strip()
     else:
