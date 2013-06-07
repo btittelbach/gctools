@@ -65,7 +65,12 @@ def _new_cookie_jar():
         import cookielib
         return cookielib.CookieJar()
 
-parser_ = etree.HTMLParser(encoding = "utf-8")
+def _init_parser():
+    global parser_
+    parser_ = etree.HTMLParser(encoding = "utf-8")
+
+parser_ = None
+_init_parser()
 
 def _ask_usr_pwd():
     print "Please provide your geocaching.com login credentials:"
@@ -202,7 +207,9 @@ class GCSession(object):
         return True
 
     def _check_is_session_valid(self, content):
-        if content.find("id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0 or content.find('<a id="hlSignIn" accesskey="s" title="Sign In" class="SignInLink" href="/login/">Sign In') >= 0:
+        if content.find("id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0 \
+        or content.find('<a id="hlSignIn" accesskey="s" title="Sign In" class="SignInLink" href="/login/">Sign In') >= 0 \
+        or content.find('<h2>Object moved to <a href="https://www.geocaching.com/login/?RESET=Y&amp;redir=') >= 0:
             self.invalidate_cookie()
             self.logged_in = 0
             return False
