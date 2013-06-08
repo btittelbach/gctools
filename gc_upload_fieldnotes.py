@@ -57,5 +57,6 @@ for gcvisitfile in gcvisitfiles:
         sys.exit(1)
     except Exception, e:
         print "ERROR: upload of fieldnotefile %s failed" % (gcvisitfile)
-        print e
+        print sys.exc_info()[2].tb_frame.f_code
+        print e, "line: %d" % sys.exc_info()[2].tb_lineno
 
