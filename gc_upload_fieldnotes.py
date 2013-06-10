@@ -21,7 +21,7 @@ def usage():
     print "ask for them the first time and store a session cookie. Unless -i is given"
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hi", ["username=","password=","noninteractive"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hi", ["username=","password=","noninteractive","debug"])
 except getopt.GetoptError, e:
     print "ERROR: Invalid Option: " +str(e)
     usage()
@@ -41,6 +41,8 @@ for o, a in opts:
         gc.gc_password = a
     elif o in ["-i","--noninteractive"]:
         gc.be_interactive = False
+    elif o in ["--debug"]:
+        gc.gc_debug = True
 
 gcvisitfiles = filter(os.path.exists, args)
 if len(gcvisitfiles) < 1:
@@ -57,6 +59,7 @@ for gcvisitfile in gcvisitfiles:
         sys.exit(1)
     except Exception, e:
         print "ERROR: upload of fieldnotefile %s failed" % (gcvisitfile)
-        print sys.exc_info()[2].tb_frame.f_code
-        print e, "line: %d" % sys.exc_info()[2].tb_lineno
+        if gc.gc_debug:
+            import traceback
+            traceback.print_exc()
 

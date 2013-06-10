@@ -4,6 +4,7 @@
 # License: public domain, attribution appreciated
 
 
+from __future__ import print_function
 import sys
 import os
 from lxml import etree
@@ -43,9 +44,8 @@ class NotLoggedInError(Exception):
 
 def _debug_print(context,*args):
     if gc_debug:
-        sys.stderr.write("\n\n=============== %s ===============\n" % context)
-        sys.stderr.write(", ".join(map(unicode,args)))
-        sys.stderr.write("\n")
+        print(u"\n\n=============== %s ===============" % context,file=sys.stderr)
+        print(*args,file=sys.stderr)
 
 def _is_new_requests_lib():
     return "__build__" in requests.__dict__ and requests.__build__ >= 0x000704
@@ -73,7 +73,7 @@ parser_ = None
 _init_parser()
 
 def _ask_usr_pwd():
-    print "Please provide your geocaching.com login credentials:"
+    print("Please provide your geocaching.com login credentials:")
     sys.stdout.write("username: ")
     usr = sys.stdin.readline().strip()
     sys.stdout.write("password: ")
@@ -221,7 +221,7 @@ class GCSession(object):
             self._check_login()
             attempts -= 1
             r = reqfun(self.cookie_jar_)
-            _debug_print("req_wrap",r.content.decode("utf-8"))
+            _debug_print("req_wrap",r.content)
             if _did_request_succeed(r):
                 if self._check_is_session_valid(r.content):
                     return r
@@ -310,7 +310,7 @@ def upload_fieldnote(fieldnotefileObj, ignore_previous_logs = True):
     r = gcsession.req_post(uri, post_data, files = post_files)
     tree = etree.fromstring(r.content, parser_)
     successdiv = tree.find(".//div[@id='ctl00_ContentBody_regSuccess']")
-    _debug_print("upload_fieldnote",type(tree),type(successdiv),etree.tostring(successdiv,encoding="utf-8"))
+    _debug_print("upload_fieldnote",type(tree),type(successdiv))
     if not successdiv is None:
         return successdiv.text.strip()
     else:
