@@ -103,6 +103,15 @@ def _delete_config_file(filename):
     except:
         pass
 
+def _seek0_files_in_dict(d):
+    if isinstance(d,dict):
+        for i in d.values():
+            if isinstance(i,file):
+                i.seek(0)
+            elif isinstance(i,tuple) and isinstance(i[1],file):
+                i[1].seek(0)
+    return d
+
 
 #### Login / Requests-Lib Decorator ####
 
@@ -221,7 +230,7 @@ class GCSession(object):
             self._check_login()
             attempts -= 1
             r = reqfun(self.cookie_jar_)
-            _debug_print("req_wrap",r.content)
+            _debug_print("req_wrap","attempts: %d\n" % attempts, r.content)
             if _did_request_succeed(r):
                 if self._check_is_session_valid(r.content):
                     return r
@@ -233,7 +242,7 @@ class GCSession(object):
         return self.req_wrap(lambda cookies: requests.get(uri, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
     def req_post(self, uri, post_data, files = None):
-        return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = files, allow_redirects = False, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
+        return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = _seek0_files_in_dict(files), allow_redirects = False, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
 
 _gc_session_ = False
