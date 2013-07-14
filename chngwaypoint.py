@@ -14,10 +14,13 @@ empty_wptinfo_ = WPTInfo(*((None,)*5))
 try:
   import wx
 
+  def tupleSizeRestrict(a,maxsize,margin=0):
+    return (min(a[0],maxsize[0]-margin), min(a[1],maxsize[1]-margin))
+
 # Special GUI for mittene and alopexx :-)
   class ChngWPTDialog(wx.Dialog):
     def __init__(self, parent, title, wptinfo=empty_wptinfo_):
-      super(ChngWPTDialog, self).__init__(parent=parent, title=title, size=(400, 650))
+      super(ChngWPTDialog, self).__init__(parent=parent, title=title, size=tupleSizeRestrict((400, 650),wx.DisplaySize(),30))
       sb_type = wx.StaticBox(self, label='Change Cache-Type')
       sbs_type = wx.StaticBoxSizer(sb_type, orient=wx.VERTICAL)
       self.type_cmbbox = wx.ComboBox(self, choices=[""]+cache_type_map.values(), style=wx.CB_DROPDOWN, value=wptinfo.type if wptinfo.type else u"")
