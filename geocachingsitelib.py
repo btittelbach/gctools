@@ -328,3 +328,86 @@ def upload_fieldnote(fieldnotefileObj, ignore_previous_logs = True):
         return successdiv.text.strip()
     else:
         raise GeocachingSiteError("geocaching.com did not like the provided file %s" % fieldnotefileObj.name)
+
+def get_fieldnotes():
+    gcsession = getDefaultInteractiveGCSession()
+    uri = gc_listfieldnotes_uri_
+    r = gcsession.req_get(uri)
+    FieldNote = namedtuple("FieldNote",["name","date","time","type","loguri","deluri"])
+    rv = []
+    tree = etree.fromstring(r.content, parser_)
+    for tr_elem in tree.findall(".//table[@class='Table']/tbody/tr"):
+        rv.append(FieldNote(name=tr_elem[1][1].text,
+                                                date=tr_elem[2].text[:-9],
+                                                time=tr_elem[2].text[-8:],
+                                                type=tr_elem[3][0].get("alt"),
+                                                loguri=urlparse.urljoin(uri,tr_elem[4][0].get("href")),
+                                                deluri=urlparse.urljoin(uri,tr_elem[4][1].get("href"))))
+    return rv
+
+def submit_log(loguri, logtext, logdate=None, logtype=None, favorite=False, encrypt=False):
+    #~ Valid Log Types:
+		#~ <option value="-1">- Select Type of Log -</option>
+		#~ <option value="2">Found it</option>
+		#~ <option value="3">Didn&#39;t find it</option>
+		#~ <option value="4">Write note</option>
+		#~ <option value="7">Needs Archived</option>
+		#~ <option value="45">Needs Maintenance</option>
+    gcsession = getDefaultInteractiveGCSession()
+    r = gcsession.req_get(loguri)
+    loginfo_input_name="ctl00$ContentBody$LogBookPanel1$uxLogInfo"
+    valid_logtype_ids = []
+    rv = []
+    post_data={}
+    post_checkboxes=[]
+    fieldnote_loginfo=""
+    tree = etree.fromstring(r.content, parser_)
+    formelem = tree.find(".//form")
+    if formelem is None:
+        return rv
+    formaction=urlparse.urljoin(loguri,formelem.get("action"))
+
+    for textarea_elem in formelem.findall(".//textarea"):
+        if textarea_elem.get("name").endswith("LogInfo"):
+            loginfo_input_name = textarea_elem.get("name")
+            fieldnote_loginfo = textarea_elem.text.strip()
+
+    if fieldnote_loginfo:
+        print("Fieldnote stored logtext found:", fieldnote_loginfo)
+
+    for select_elem in formelem.findall(".//select"):
+        if not select_elem.get("name").endswith("LogType"):
+            continue
+        post_data[select_elem.get("name")] = "4"
+        for option_elem in select_elem.findall("./option"):
+            valid_logtype_ids.append(option_elem.get("value"))
+            if option_elem.get("selected"):
+                post_data[select_elem.get("name")] = option_elem.get("value")
+    valid_logtype_ids.remove("-1")
+
+    for input_elem in formelem.findall(".//input"):
+        if input_elem.get("type") == "checkbox":
+            post_checkboxes.append(input_elem.get("name"))
+        else:
+            post_data[input_elem.get("name")] = input_elem.get("value")
+    if encrypt:
+        input_name = filter(lambda s: s.endswith("Encrypt"), post_checkboxes)
+        if input_name:
+            post_data[input_name[0]]=1
+    if favorite:
+        input_name = filter(lambda s: s.endswith("AddToFavorites"), post_checkboxes)
+        if input_name:
+            post_data[input_name[0]]=1
+    if str(logtype) in valid_logtype_ids:
+        input_name = filter(lambda s: s.endswith("LogType"), post_data.keys())
+        if input_name:
+            post_data[input_name[0]]=str(logtype)
+    if logdate is not None:
+        input_name = filter(lambda s: s.endswith("DateVisited"), post_data.keys())
+        if input_name:
+            post_data[input_name[0]]=logdate
+    post_data[loginfo_input_name]=logtext
+
+    ### Post Log ###
+    r = gcsession.req_post(formaction, post_data)
+    return _did_request_succeed(r)
