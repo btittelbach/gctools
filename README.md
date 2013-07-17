@@ -135,7 +135,8 @@ I use this to change the coordinates of mystery-caches I've solved and download 
 
 ### Usage
 
-Just call it with a gpx-file as argument and a dialog will pop up where you can make changes.
+Just call it with one or several gpx-file(s) as argument and a dialog will pop up where you can make changes.
+Instead of running it from the command-line, you could also DnD files onto the chngwaypoint.py scriptfile.
 
     Sytax:
            ./chngwaypoint.py [options] <gpx-file> [more gpx files ...]
