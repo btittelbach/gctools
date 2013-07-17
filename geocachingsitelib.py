@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # (c) Bernhard Tittelbach <xro@gmx.net>
-# License: public domain, attribution appreciated
+# License: GPLv3, attribution is appreciated
 
 
 from __future__ import print_function
@@ -13,14 +13,18 @@ import re
 import cPickle
 import exceptions
 import types
+import urlparse
+from collections import namedtuple
+
 
 #### Global Constants ####
 
 gc_auth_uri_ = "https://www.geocaching.com/login/default.aspx"
-gc_uploadfieldnotes_uri_ = "http://www.geocaching.com/my/uploadfieldnotes.aspx"
-gc_wp_uri_ = "http://www.geocaching.com/seek/cache_details.aspx?wp=%s"
-gc_pqlist_uri_ = "http://www.geocaching.com/pocket/default.aspx"
-gc_pqdownload_host_ = "http://www.geocaching.com"
+gc_uploadfieldnotes_uri_ = "https://www.geocaching.com/my/uploadfieldnotes.aspx"
+gc_listfieldnotes_uri_ = "https://www.geocaching.com/my/fieldnotes.aspx"
+gc_wp_uri_ = "https://www.geocaching.com/seek/cache_details.aspx?wp=%s"
+gc_pqlist_uri_ = "https://www.geocaching.com/pocket/default.aspx"
+gc_pqdownload_host_ = "https://www.geocaching.com"
 gc_pqdownload_path_ = '/pocket/downloadpq.ashx?g=%s'
 gc_debug = False
 
