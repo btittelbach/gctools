@@ -30,7 +30,7 @@ except getopt.GetoptError, e:
 fetch_all_pqs_ = False
 list_pqs_ = False
 create_pq_dir_ = False
-gc.be_interactive_ = True
+gc.be_interactive = True
 for o, a in opts:
     if o in ["-h","--help"]:
         usage()

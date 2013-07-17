@@ -58,6 +58,7 @@ try:
                                         substvars=self.substvars_chkbox.IsChecked(),
                                         text=self.loginfo_txt.GetValue())
 
+  wxapp = wx.App()
   gui_available_ = True
 except ImportError:
   gui_available_ = False
@@ -81,7 +82,8 @@ except getopt.GetoptError, e:
     usage()
     sys.exit(1)
 
-gc.be_interactive_ = True
+gc.be_interactive = True
+gc.allow_use_wx = True
 for o, a in opts:
     if o in ["-h","--help"]:
         usage()
@@ -96,14 +98,21 @@ for o, a in opts:
         gc.gc_debug = True
 
 if not gui_available_:
-    print("wyPython not installed: GUI not available")
+    print("wyPython not installed: GUI not available, exiting...")
     sys.exit(1)
 
+dialog_title=u"Bulkwrite Fieldnotes"
 
 fieldnotes = gc.get_fieldnotes()
 
-wxapp = wx.App()
-dial = WriteFieldnoteLogsDialog(None, "Bulk Write Fieldnotes", fieldnotes)
+if len(fieldnotes) == 0:
+    print "No pending fieldnotes, nothing to do"
+    msgdlg = wx.MessageDialog(None, "No pending fieldnotes!\nnothing to do", dialog_title, wx.ICON_INFORMATION)
+    msgdlg.ShowModal()
+    msgdlg.Destroy()
+    sys.exit(0)
+
+dial = WriteFieldnoteLogsDialog(None, dialog_title, fieldnotes)
 if dial.ShowModal() != wx.ID_OK:
     print "Abort selected"
     dial.Destroy()
@@ -112,7 +121,7 @@ if dial.ShowModal() != wx.ID_OK:
 dialinfo =  dial.getInput()
 dial.Destroy()
 
-progressdial = wx.ProgressDialog(title=u"Bulkwrite Fieldnotes", message="Logging selected fieldnotes", parent=None, maximum=len(dialinfo.selection), style = wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT)
+progressdial = wx.ProgressDialog(title=dialog_title, message="Logging selected fieldnotes", parent=None, maximum=len(dialinfo.selection), style = wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE | wx.PD_CAN_ABORT)
 progress=0
 for fnindex in dialinfo.selection:
     fn = fieldnotes[fnindex]

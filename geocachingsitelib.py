@@ -77,6 +77,24 @@ parser_ = None
 _init_parser()
 
 def _ask_usr_pwd():
+    if allow_use_wx:
+        try:
+            import wx
+            dlg = wx.TextEntryDialog(parent=None,message="Please enter your geocaching.com username")
+            if dlg.ShowModal() != wx.ID_OK:
+                raise NotLoggedInError("User aborted username/password dialog")
+            usr = dlg.GetValue()
+            dlg.Destroy()
+            dlg = wx.PasswordEntryDialog(parent=None,message="Please enter your geocaching.com password")
+            if dlg.ShowModal() != wx.ID_OK:
+                raise NotLoggedInError("User aborted username/password dialog")
+            pwd = dlg.GetValue()
+            dlg.Destroy()
+            return (usr,pwd)
+        except Exception, e:
+            print(e)
+            if gc_debug:
+                raise e
     print("Please provide your geocaching.com login credentials:")
     sys.stdout.write("username: ")
     usr = sys.stdin.readline().strip()
@@ -253,6 +271,7 @@ _gc_session_ = False
 gc_username = None
 gc_password = None
 be_interactive = True
+allow_use_wx = False
 
 def getDefaultInteractiveGCSession():
     global _gc_session_
