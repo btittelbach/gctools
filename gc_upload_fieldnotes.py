@@ -11,7 +11,7 @@ import geocachingsitelib as gc
 
 def usage():
     print "Sytax:"
-    print "       [%s -u <user> -p <pass>] geocache_visits.txt" % (sys.argv[0])
+    print "       %s [-u <user> -p <pass>] geocache_visits.txt" % (sys.argv[0])
     print "Options:"
     print "       -h           | --help             Show Help"
     print "       -u username  | --username=gc_user "
@@ -21,7 +21,7 @@ def usage():
     print "ask for them the first time and store a session cookie. Unless -i is given"
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hi", ["username=","password=","noninteractive","debug"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hi", ["username=","password=","noninteractive","debug","help"])
 except getopt.GetoptError, e:
     print "ERROR: Invalid Option: " +str(e)
     usage()

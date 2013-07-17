@@ -66,7 +66,7 @@ except ImportError:
 
 def usage():
     print "Sytax:"
-    print "       [%s -u <user> -p <pass>]" % (sys.argv[0])
+    print "       %s [-u <user> -p <pass>]" % (sys.argv[0])
     print "Options:"
     print "       -h           | --help             Show Help"
     print "       -u username  | --username=gc_user "
@@ -76,7 +76,7 @@ def usage():
     print "ask for them the first time and store a session cookie. Unless -i is given"
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hi", ["username=","password=","noninteractive","debug"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hi", ["help","username=","password=","noninteractive","debug"])
 except getopt.GetoptError, e:
     print "ERROR: Invalid Option: " +str(e)
     usage()
@@ -101,7 +101,7 @@ if not gui_available_:
     print("wyPython not installed: GUI not available, exiting...")
     sys.exit(1)
 
-dialog_title=u"Bulkwrite Fieldnotes"
+dialog_title=u"Bulk-Log Fieldnotes"
 
 fieldnotes = gc.get_fieldnotes()
 
