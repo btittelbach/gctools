@@ -91,6 +91,35 @@ This sorts images named after their GCCODE into the ``./garmin/GeocachePhotos/``
           --delete_old --threads 18 /media/GARMIN/Garmin/GPX/!(*-wpts).gpx
 
 
+
+gc_bulklog_fieldnotes.py
+------------------------
+
+Log multiple fieldnotes at once with the same text. 
+
+Useful for logging powertrails.
+Textsubstituion of date and time with %D and %T are supported.
+
+### Requirements
+
+* python  	(i.e. python2)
+* python-lxml	(i.e. python2-lxml)
+* wxwidgets  (python-wxgtk2.8 or higher)
+
+
+### Usage
+
+just launch it, it has a GUI.
+
+    Sytax:
+           ./gc_bulklog_fieldnotes.py [-u <user> -p <pass>]
+    Options:
+           -h           | --help             Show Help
+           -u username  | --username=gc_user 
+           -p password  | --password=gc_pass 
+           -i           | --noninteractive   Never prompt for pwd, just fail
+
+
 chngwaypoint.py
 ---------------
 Change the Coordinates and or Description of a given geocaching.com .gpx-file.
