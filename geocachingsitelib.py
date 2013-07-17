@@ -28,6 +28,8 @@ gc_pqdownload_host_ = "https://www.geocaching.com"
 gc_pqdownload_path_ = '/pocket/downloadpq.ashx?g=%s'
 gc_debug = False
 
+gcvote_getvote_uri_='http://gcvote.com/getVotes.php'
+
 default_config_dir_ = os.path.join(os.path.expanduser('~'),".local","share","gctools")
 auth_cookie_default_filename_ = "gctools_cookies"
 
@@ -134,6 +136,11 @@ def _seek0_files_in_dict(d):
                 i[1].seek(0)
     return d
 
+def _splitList(lst,n):
+    i=0
+    while i < len(lst):
+        yield lst[i:i+n]
+        i+=n
 
 #### Login / Requests-Lib Decorator ####
 
@@ -430,3 +437,29 @@ def submit_log(loguri, logtext, logdate=None, logtype=None, favorite=False, encr
     ### Post Log ###
     r = gcsession.req_post(formaction, post_data)
     return _did_request_succeed(r)
+
+def get_gcvotes(gcids_list, gcv_usr=None, gcv_pwd=None, use_median=True, request_limit=10):
+    global gcvote_getvote_uri_
+    xml_parser_ = etree.XMLParser(encoding="utf-8")
+    rdict = {}
+    if gcv_usr is None:
+        gcv_usr=""
+    if gcv_pwd is None:
+        gcv_pwd=""
+    if not gcids_list:
+        raise Exception("got empty list")
+    for gcids in _splitList(gcids_list, request_limit):
+        post_data={"version":"2.4e","userName":gcv_usr, "password":gcv_pwd,"cacheIds":",".join(gcids)}
+        r = requests.post(gcvote_getvote_uri_, data=post_data, allow_redirects=False)
+        if _did_request_succeed(r) and r.content.find("<votes userName='%s'" % gcv_usr) >= 0:
+            try:
+                tree = etree.fromstring(r.content, xml_parser_)
+                for vote in tree.findall(".//vote[@voteMedian]"):
+                    rdict[vote.get("waypoint")] = (  vote.get("voteMedian") if use_median else vote.get("voteAvg")[0:4]   , vote.get("voteCnt"))
+                    _debug_print(vote.get("cacheId"), vote.get("waypoint"), vote.get("voteMedian"), vote.get("voteAvg"), vote.get("voteCnt"), vote.get("voteUser"))
+            except (etree.ParserError, etree.DocumentInvalid) as e:
+                _debug_print(e)
+                continue
+        else:
+            raise Exception("GC-Vote download error." + (" GC-Vote: "+r.content if len(r.content) < 10 else ""))
+    return rdict

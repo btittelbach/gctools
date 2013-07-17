@@ -6,11 +6,9 @@
 import sys
 import getopt
 from lxml import etree
-import requests
-#import re
+import geocachingsitelib as gc
 
 show_vote_string_="GCVote: %s (%s votes)"
-gcvote_getvote_uri_='http://gcvote.com/getVotes.php'
 gc_guid_uri_='http://www.geocaching.com/seek/cache_details.aspx?guid='
 xml_parser_ = etree.XMLParser(encoding="utf-8")
 use_median_=True
@@ -23,33 +21,6 @@ def usage():
   print "       -u username | --username=gcvote_user"
   print "       -p password | --password=gcvote_pass"
   print "       -m          | --mean     Use mean instead of median"
-
-def splitList(lst,n):
-  i=0
-  while i < len(lst):
-    yield lst[i:i+n]
-    i+=n
-
-def getGCVotes(usr, pwd, gcids_list, use_median=True, request_limit=10):
-  global gcvote_getvote_uri_
-  rdict = {}
-  if not gcids_list:
-    raise Exception("got empty list")
-  for gcids in splitList(gcids_list, request_limit):
-    post_data={"version":"2.4e","userName":usr, "password":pwd,"cacheIds":",".join(gcids)}
-    r = requests.post(gcvote_getvote_uri_, data=post_data, allow_redirects=False)
-    if r.error is None and r.content.find('<votes userName=\'%s\'' % usr) >= 0:
-      try:
-        tree = etree.fromstring(r.content, xml_parser_)
-        for vote in tree.findall(".//vote[@voteMedian]"):
-          rdict[vote.get("waypoint")] = (  vote.get("voteMedian") if use_median else vote.get("voteAvg")[0:4]   , vote.get("voteCnt"))
-          #print vote.get("cacheId"), vote.get("waypoint"), vote.get("voteMedian"), vote.get("voteAvg"), vote.get("voteCnt"), vote.get("voteUser")
-      except (etree.ParserError,etree.DocumentInvalid) as e:
-        print e
-        continue
-    else:
-      raise Exception("GC-Vote download error." + (" GC-Vote: "+r.content if len(r.content) < 10 else ""))
-  return rdict
 
 if __name__ == '__main__':
   gcvote_username_ = None
@@ -90,7 +61,7 @@ if __name__ == '__main__':
       continue
     urls = [ url.text for url in tree.iterfind(".//{http://www.topografix.com/GPX/1/0}url",namespaces=tree.nsmap) ]
     gcids += map(lambda x: x[len(gc_guid_uri_):], filter(lambda x: x.startswith(gc_guid_uri_), urls))
-    votes_dict = getGCVotes(gcvote_username_, gcvote_password_, gcids, use_median=use_median_)
+    votes_dict = gc.get_gcvotes(gcids, gcvote_username_, gcvote_password_, use_median=use_median_)
     for wpt_elem in tree.iterfind("{http://www.topografix.com/GPX/1/0}wpt",namespaces=tree.nsmap):
       gccode = wpt_elem.find("{http://www.topografix.com/GPX/1/0}name",namespaces=tree.nsmap).text
       sdesc_elem = wpt_elem.find(".//{http://www.groundspeak.com/cache/1/0}short_description",namespaces=tree.nsmap)
