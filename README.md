@@ -5,6 +5,8 @@ These scripts have been written and tested on GNU/Linux.
 Your experience on other operation systems may vary.
 Feedback and patches are welcome.
 
+See Installation Notes at end of file.
+
 gc_get_spoiler_pics.py
 ----------------------
 Takes a geocaching.com pocket-query .gpx-file and trawls the geocaching.com homepage for garmin/GeocachePhotos.
@@ -234,7 +236,7 @@ Also note, that for now, calling ``gc_add_gcvote_to_pq.py`` on a file repeatedly
 
 * python  	(i.e. python2)
 * python-lxml	(i.e. python2-lxml)
-* python-requests (v0.5)
+* python-requests
 
 ### Usage
     Sytax:
@@ -304,3 +306,36 @@ Use with Garmin 60CSx or older before transferring the pocket query to your gps.
     sed -r -f ~/gc_gpx_garmin.sed <pocketquery-gpx-file>
 
 
+gctools - Installation Notes
+===================================================
+
+Debian/Ubuntu GNU/Linux
+-----------------------
+
+run the following on the CL and your are done:
+
+    apt-get install python-requests python-lxml python-wxgtk2.8 python3-requests python3-lxml libimage-exiftool-perl
+
+
+Windows
+-------
+
+Installing all the requirements on windows seems to be a bit more involved,
+but for the Python2 scripts these are the required steps:
+
+* Consult http://docs.python-guide.org/en/latest/starting/install/win.html
+* Install the lastest Python2 from http://python.org/download/
+* Add Python to your path (see link above).
+  Best done by running the following command in PowerShell:
+  ``[Environment]::SetEnvironmentVariable("Path", "$env:Path;C:\Python27\;C:\Python27\Scripts\", "User")``
+* Download and run http://python-distribute.org/distribute_setup.py
+* Install WXPython from http://wxpython.org/download.php
+* Install lxml from http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml
+* Install requests by running cmd.exe 
+  and then type ``pip install requests``
+
+
+For Python3:
+* Install Virtualenv by running ``pip install virtualenv`` in cmd
+* Install latest Python 3.x from http://python.org/download/
+* Setup a Python3 virtual environment
