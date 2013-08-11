@@ -33,6 +33,9 @@ gcvote_getvote_uri_='http://gcvote.com/getVotes.php'
 default_config_dir_ = os.path.join(os.path.expanduser('~'),".local","share","gctools")
 auth_cookie_default_filename_ = "gctools_cookies"
 
+FieldNote = namedtuple("FieldNote",["name","date","time","type","loguri","deluri"])
+GarminFieldLog = namedtuple("GarminFieldLog",["gccode","date","time","type","comment"])
+
 
 #### Exceptions ####
 
@@ -72,8 +75,9 @@ def _new_cookie_jar():
         return cookielib.CookieJar()
 
 def _init_parser():
-    global parser_
+    global parser_, xml_parser_
     parser_ = etree.HTMLParser(encoding = "utf-8")
+    xml_parser_ = etree.XMLParser(encoding="utf-8")
 
 parser_ = None
 _init_parser()
@@ -359,7 +363,6 @@ def get_fieldnotes():
     gcsession = getDefaultInteractiveGCSession()
     uri = gc_listfieldnotes_uri_
     r = gcsession.req_get(uri)
-    FieldNote = namedtuple("FieldNote",["name","date","time","type","loguri","deluri"])
     rv = []
     tree = etree.fromstring(r.content, parser_)
     for tr_elem in tree.findall(".//table[@class='Table']/tbody/tr"):
@@ -439,9 +442,9 @@ def submit_log(loguri, logtext, logdate=None, logtype=None, favorite=False, encr
     return _did_request_succeed(r)
 
 def get_gcvotes(gcids_list, gcv_usr=None, gcv_pwd=None, use_median=True, request_limit=10):
-    global gcvote_getvote_uri_
-    xml_parser_ = etree.XMLParser(encoding="utf-8")
+    global gcvote_getvote_uri_, xml_parser_
     rdict = {}
+    _init_parser()
     if gcv_usr is None:
         gcv_usr=""
     if gcv_pwd is None:
@@ -463,3 +466,17 @@ def get_gcvotes(gcids_list, gcv_usr=None, gcv_pwd=None, use_median=True, request
         else:
             raise Exception("GC-Vote download error." + (" GC-Vote: "+r.content if len(r.content) < 10 else ""))
     return rdict
+
+def read_garmin_fieldnotes_xml(filename):
+    _init_parser()
+    rv = []
+    with open(filename,"rb") as fh:
+        tree = etree.parse(fh, xml_parser_).getroot()
+    for log_elem in tree:
+        timedate=log_elem.find("./{http://www.garmin.com/xmlschemas/geocache_visits/v1}time").text
+        rv.append(GarminFieldLog(gccode=log_elem.find("./{http://www.garmin.com/xmlschemas/geocache_visits/v1}code").text,
+                                                date=timedate[0:10],
+                                                time=timedate[11:19],
+                                                type=log_elem.find("./{http://www.garmin.com/xmlschemas/geocache_visits/v1}result").text,
+                                                comment=log_elem.find("./{http://www.garmin.com/xmlschemas/geocache_visits/v1}comment").text))
+    return rv
