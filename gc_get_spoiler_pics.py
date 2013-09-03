@@ -140,6 +140,13 @@ def checkExistsFilePatternInDir(img_save_path, pattern):
       return True
   return False
 
+def checkExistsImagesForGCCode(gccode):
+  img_path = getFileSaveDir(gccode)
+  if allinonedir_:
+    return checkExistsFilePatternInDir(img_path, gccode+"*"+images_ext_)
+  else:
+    return any([s.endswith(images_ext_) for s in os.listdir(img_path)])
+
 def getFilePatternInSaveDir(pattern):
   global files_in_savedir_, img_save_path_
   if files_in_savedir_ is None:
@@ -280,7 +287,9 @@ def writeDoneFile():
 
 def genCacheDescriptionHash(cache_etree):
   #clear out elements that change even if cache description was not updated
-  for elem in cache_etree.findall(".//groundspeak:logs", cache_etree.nsmap) + cache_etree.findall(".//groundspeak:travelbugs", cache_etree.nsmap):
+  log_elems = cache_etree.findall(".//groundspeak:logs", cache_etree.nsmap)
+  tb_elems = cache_etree.findall(".//groundspeak:travelbugs", cache_etree.nsmap)
+  for elem in  (log_elems if log_elems else []) + (tb_elems if tb_elems else []):
     elem.clear()
   hash = md5()
   hash.update(etree.tostring(cache_etree, encoding="utf-8", method="xml"))
@@ -490,14 +499,15 @@ if __name__ == '__main__':
             os.makedirs(gcimgdir)
           for imgfile in getFilePatternInSaveDir(gccode+"*"+images_ext_):
             shutil.move(imgfile, gcimgdir)
-        if checkPreviouslyDoneGC(gccode,gchash):
-          parprint("Skipping: %s %s (Reason: Cache GPX description unchanged)" % (gccode, gcname))
-          continue
-        if look_for_gcjpg_files_and_skip_gc_ and checkExistsFilePatternInDir(gcimgdir, gccode+"*"+images_ext_):
-          parprint("Skipping: %s %s (Reason: --skip_present given and at least one image for GC exists)" % (gccode, gcname))
-          continue
         if url is None:
           continue
+        if checkExistsImagesForGCCode(gccode):
+          if look_for_gcjpg_files_and_skip_gc_:
+            parprint("Skipping: %s %s (Reason: --skip_present given and at least one image for GC exists)" % (gccode, gcname))
+            continue
+          if checkPreviouslyDoneGC(gccode,gchash):
+            parprint("Skipping: %s %s (Reason: Cache GPX description unchanged)" % (gccode, gcname))
+            continue
         if mp_pool:
           mp_pool.apply_async(parseHTMLDescriptionDownloadAndTag,(url, gccode, gcname, gchash, latitude + lat_offset_, longitude + lon_offset_, altitude), callback=addTupleToDone)
         else:
