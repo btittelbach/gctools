@@ -112,12 +112,11 @@ def downloadImage(imguri, saveas):
 
 def getAttachedImages(tree,searchstring):
   for atag in tree.findall(searchstring):
-    if atag.tag == "a" and atag.get("class") == "lnk" and atag.get("rel") == "lightbox":
-      imguri=atag.get("href")
-      imgdesc=etree.tostring(atag,method="text",encoding="utf-8").decode("utf8").strip()
-      if imgdesc is None:
-        imgdesc=""
-      yield (imguri, imgdesc)
+    imguri=atag.get("href")
+    imgdesc=etree.tostring(atag,method="text",encoding="utf-8").decode("utf8").strip()
+    if imgdesc is None:
+      imgdesc=""
+    yield (imguri, imgdesc)
 
 def getFileSaveDir(gccode):
   global img_save_path_, allinonedir_
@@ -226,7 +225,7 @@ def parseHTMLDescriptionDownloadAndTag(url, gccode, gcname, gchash, latitude, lo
     parprint("ERROR parsing html page of waypoint.\n\tURL: %s\n\tErrorMsg: %s" % (url,str(e)))
     return None
   imghashset = set()
-  for imguri,imgdesc in getAttachedImages(gcwebtree,".//p[@class='NoPrint']/a[@class='lnk']"):
+  for imguri,imgdesc in getAttachedImages(gcwebtree,".//ul[@class='CachePageImages NoPrint']//a[@rel='lightbox']"):
     if not re_imgnamefilter_ is None:
       m = re_imgnamefilter_.search(imgdesc)
       if m is None:
