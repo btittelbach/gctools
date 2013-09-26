@@ -285,9 +285,24 @@ def writeDoneFile():
       print("ERROR, could not write done file: " + str(e))
 
 def genCacheDescriptionHash(cache_etree):
+  log_elems = []
+  tb_elems = []
+  #lxml "bug" workaround
+  if None in cache_etree.nsmap:
+    nsmap = dict(cache_etree.nsmap)
+    nsmap[""] = nsmap[None]
+    del nsmap[None]
+  else:
+    nsmap = cache_etree.nsmap
   #clear out elements that change even if cache description was not updated
-  log_elems = cache_etree.findall(".//groundspeak:logs", cache_etree.nsmap)
-  tb_elems = cache_etree.findall(".//groundspeak:travelbugs", cache_etree.nsmap)
+  try:
+    log_elems = cache_etree.findall(".//groundspeak:logs", nsmap)
+  except Exception as e:
+    print("Exception genCacheDescriptionHash, log_elems=",e, nsmap)
+  try:
+    tb_elems = cache_etree.findall(".//groundspeak:travelbugs", nsmap)
+  except Exception as e:
+    print("Exception genCacheDescriptionHash, tb_elems=",e, nsmap)
   for elem in  (log_elems if log_elems else []) + (tb_elems if tb_elems else []):
     elem.clear()
   hash = md5()
@@ -451,12 +466,10 @@ if __name__ == '__main__':
 
   # parse gpx pocketqueries from cmd-line arguments and download any and all spoiler images
   xml_parser = etree.XMLParser(encoding="utf-8")
-  nsmap = {}
   for gpxfile in gpxfiles:
     fgpx = open(gpxfile, encoding=guessEncodingFromBOM(gpxfile))
     try:
       gpxtree = etree.parse(fgpx,xml_parser).getroot()
-      nsmap.update(gpxtree.nsmap)  #get namespace info from gpx files
     except (etree.XMLSyntaxError,etree.ParserError,etree.DocumentInvalid) as e:
       parprint("ERROR, could not parse %s" % (gpxfile))
       parprint("\tErrorMsg: %s" % (str(e)))
