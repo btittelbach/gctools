@@ -366,7 +366,10 @@ def get_fieldnotes():
     rv = []
     tree = etree.fromstring(r.content, parser_)
     for tr_elem in tree.findall(".//table[@class='Table']/tbody/tr"):
-        rv.append(FieldNote(name=tr_elem[1][1].text,
+        name = etree.tostring(tr_elem[1][1], method="text", encoding="utf-8").decode("utf-8")
+        if tr_elem[1][1].find(".//span[@class='Stike']") is not None:
+            name += u" (Disabled|Archived)"
+        rv.append(FieldNote(name=name,
                                                 date=tr_elem[2].text[:-9],
                                                 time=tr_elem[2].text[-8:],
                                                 type=tr_elem[3][0].get("alt"),
