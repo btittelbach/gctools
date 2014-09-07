@@ -201,16 +201,18 @@ class GCSession(object):
             "__EVENTARGUMENT":"",
             "ctl00$ContentBody$tbUsername":self.gc_username,
             "ctl00$ContentBody$tbPassword":self.gc_password,
+            "ctl00_ContentBody_cbRememberMe": True,
             "ctl00$ContentBody$btnSignIn":"Login"
         }
         if remember_me:
             post_data["ctl00$ContentBody$cbRememberMe"] = "1"
-        r = requests.post(gc_auth_uri_, data = post_data, allow_redirects = False, cookies = self.cookie_jar_, headers = {"User-Agent":self.user_agent_})
+        r = requests.post(gc_auth_uri_, data = post_data, allow_redirects = True, cookies = self.cookie_jar_, headers = {"User-Agent":self.user_agent_})
         _debug_print("login",r.content.decode("utf-8"))
         login_ok = False
         if _is_new_requests_lib():
             self.cookie_jar_ = r.cookies
-            login_ok = _did_request_succeed(r) and "userid" in r.cookies
+            _debug_print("login cookies ",r.cookies)
+            login_ok = _did_request_succeed(r) and "gspkuserid" in r.cookies
         else:
             login_ok = _did_request_succeed(r) and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (self.gc_username)) > -1
         if not login_ok:

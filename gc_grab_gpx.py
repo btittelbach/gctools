@@ -30,7 +30,7 @@ def usage():
     print "ask for them the first time and store a session cookie. Unless -i is given"
 
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hlad:ci", ["listpq","help","gpxdir=","username=","password=","allpq","createpqdir","noninteractive"])
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "u:p:hlad:ci", ["listpq","help","gpxdir=","username=","password=","allpq","createpqdir","noninteractive","debug"])
 except getopt.GetoptError, e:
     print "ERROR: Invalid Option: " +str(e)
     usage()
@@ -58,6 +58,8 @@ for o, a in opts:
         gc.gc_password = a
     elif o in ["-i","--noninteractive"]:
         gc.be_interactive = False
+    elif o in ["--debug"]:
+        gc.gc_debug = True
 
 re_gccode = re.compile(r'GC[a-z0-9]{1,6}',re.IGNORECASE)
 re_pquid = re.compile(r'[a-f0-9-]{36}',re.IGNORECASE)
