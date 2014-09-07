@@ -25,7 +25,7 @@ gc_listfieldnotes_uri_ = "https://www.geocaching.com/my/fieldnotes.aspx"
 gc_wp_uri_ = "https://www.geocaching.com/seek/cache_details.aspx?wp=%s"
 gc_pqlist_uri_ = "https://www.geocaching.com/pocket/default.aspx"
 gc_pqdownload_host_ = "https://www.geocaching.com"
-gc_pqdownload_path_ = '/pocket/downloadpq.ashx?g=%s'
+gc_pqdownload_path_ = '/pocket/downloadpq.ashx?g=%s&src=web'
 gc_debug = False
 
 gcvote_getvote_uri_='http://gcvote.com/getVotes.php'
@@ -315,9 +315,10 @@ def get_pq_names():
     r = gcsession.req_get(uri)
     rv = {}
     tree = etree.fromstring(r.content, parser_)
+    gc_pqdownload_path_start, gc_pqdownload_path_end = gc_pqdownload_path_.split("%s")
     for a_elem in tree.findall(".//a[@href]"):
-        if a_elem.get("href").startswith(gc_pqdownload_path_ % ""):
-            rv[a_elem.text.strip()] = a_elem.get("href")[len(gc_pqdownload_path_ % ""):]
+        if a_elem.get("href").startswith(gc_pqdownload_path_start) and a_elem.get("href").endswith(gc_pqdownload_path_end):
+            rv[a_elem.text.strip()] = a_elem.get("href")[len(gc_pqdownload_path_start): 0-len(gc_pqdownload_path_end)]
     return rv
 
 def download_pq(pquid, dstdir):
