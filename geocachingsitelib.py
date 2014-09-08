@@ -111,12 +111,16 @@ def _ask_usr_pwd():
 def _parse_for_hidden_inputs(uri):
     gcsession = getDefaultInteractiveGCSession()
     post_data = {}
+    formaction = uri
     r = gcsession.req_get(uri)
     if _did_request_succeed(r):
         tree = etree.fromstring(r.content, parser_)
-        for input_elem in tree.findall(".//input[@type='hidden']"):
-            post_data[input_elem.get("name")] = input_elem.get("value")
-    return post_data
+        formelem = tree.find(".//form")
+        if not formelem is None:
+            for input_elem in formelem.findall(".//input[@type='hidden']"):
+                post_data[input_elem.get("name")] = input_elem.get("value")
+            formaction=urlparse.urljoin(uri,formelem.get("action"))
+    return (post_data, formaction)
 
 def _open_config_file(filename, mode):
     if not os.path.isdir(default_config_dir_):
@@ -265,7 +269,7 @@ class GCSession(object):
             self._check_login()
             attempts -= 1
             r = reqfun(self.cookie_jar_)
-            _debug_print("req_wrap","attempts: %d\n" % attempts, r.content)
+            _debug_print("req_wrap","uri: %s\n" % r.url,"attempts: %d\n" % attempts, r.content)
             if _did_request_succeed(r):
                 if self._check_is_session_valid(r.content):
                     return r
@@ -298,15 +302,23 @@ def getDefaultInteractiveGCSession():
 def download_gpx(gccode, dstdir):
     gcsession = getDefaultInteractiveGCSession()
     uri = gc_wp_uri_ % gccode.upper()
-    post_data = {"ctl00$ContentBody$btnGPXDL":"GPX file"}
-    post_data.update(_parse_for_hidden_inputs(uri))
-    r = gcsession.req_post(uri, post_data)
-    cd_header = "attachment; filename="
-    if "content-disposition" in r.headers and r.headers["content-disposition"].startswith(cd_header):
-        filename = r.headers["content-disposition"][len(cd_header):]
-        with open(os.path.join(dstdir, filename), "wb") as fh:
-            fh.write(r.content)
-            return filename
+    post_data , formaction = _parse_for_hidden_inputs(uri)
+    post_data.update({"ctl00$ContentBody$btnGPXDL":"GPX file"})
+    attempts=5
+    while attempts > 0:
+        attempts-=1
+        r = gcsession.req_post(formaction, post_data)
+        cd_header = "attachment; filename="
+        if "content-disposition" in r.headers and r.headers["content-disposition"].startswith(cd_header):
+            filename = r.headers["content-disposition"][len(cd_header):]
+            with open(os.path.join(dstdir, filename), "wb") as fh:
+                fh.write(r.content)
+                return filename
+        elif "status_code" in r.__dict__ and r.status_code == 302 and "location" in r.headers:
+            formaction=r.headers["location"]
+        else:
+            attempts=0
+            break
     raise GeocachingSiteError("Invalid gccode or other geocaching.com error")
 
 def get_pq_names():
