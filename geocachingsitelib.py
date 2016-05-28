@@ -216,7 +216,7 @@ class GCSession(object):
         if _is_new_requests_lib():
             self.cookie_jar_ = r.cookies
             _debug_print("login cookies ",r.cookies)
-            login_ok = _did_request_succeed(r) and "gspkuserid" in r.cookies
+            login_ok = _did_request_succeed(r) and "gspkauth" in r.cookies
         else:
             login_ok = _did_request_succeed(r) and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (self.gc_username)) > -1
         if not login_ok:
