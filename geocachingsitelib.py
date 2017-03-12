@@ -10,10 +10,15 @@ import os
 from lxml import etree
 import requests
 import re
-import cPickle
-import exceptions
+import pickle
 import types
-import urlparse
+try:
+	# Python3
+	import urllib.parse as urlparse
+except:
+	# Python2
+	import urlparse
+
 from collections import namedtuple
 
 
@@ -97,7 +102,7 @@ def _ask_usr_pwd():
             pwd = dlg.GetValue()
             dlg.Destroy()
             return (usr,pwd)
-        except Exception, e:
+        except Exception as e:
             print(e)
             if gc_debug:
                 raise e
@@ -169,11 +174,11 @@ class GCSession(object):
             "requestsversion": requests.__build__ if  "__build__" in requests.__dict__ else None
         }
         assert(cookie_fileobject.mode == "wb")
-        cPickle.dump(saved_data, cookie_fileobject, 2)
+        pickle.dump(saved_data, cookie_fileobject, 2)
 
     def _load_cookie_login(self, cookie_fileobject):
         assert(cookie_fileobject.mode == "rb")
-        saved_data = cPickle.load(cookie_fileobject)
+        saved_data = pickle.load(cookie_fileobject)
         if not ("jar" in saved_data and "requestsversion" in saved_data):
             raise Exception("No Cookies in this pickle jar")
         if _is_new_requests_lib():
@@ -185,21 +190,24 @@ class GCSession(object):
         self.cookie_jar_ = saved_data["jar"]
 
     def _haveUserPass(self):
-        return type(self.gc_username) in types.StringTypes and type(self.gc_password) in types.StringTypes
+        return isinstance(self.gc_username, str) and isinstance(self.gc_password, str)
+
+    def _haveCookieFilename(self):
+        return isinstance(self.cookie_session_filename, str)
 
     def _askUserPass(self):
         if isinstance(self.ask_pass_handler, types.FunctionType):
             try:
                 (self.gc_username, self.gc_password) = self.ask_pass_handler()
-            except Exception, e:
+            except Exception as e:
                 _debug_print("_askUserPass",e)
                 return False
         return self._haveUserPass()
 
     def login(self):
-        if not type(self.gc_username) in types.StringTypes or not type(self.gc_password) in types.StringTypes:
+        if not self._haveUserPass():
             raise Exception("Login called without known username/passwort")
-        remember_me = type(self.cookie_session_filename) in types.StringTypes and _is_new_requests_lib()
+        remember_me = self._haveCookieFilename() and _is_new_requests_lib()
         post_data = {
             "__EVENTTARGET":"",
             "__EVENTARGUMENT":"",
@@ -227,11 +235,11 @@ class GCSession(object):
 
     def invalidate_cookie(self):
         self.cookie_jar_ = _new_cookie_jar()
-        if  type(self.cookie_session_filename) in types.StringTypes:
+        if self._haveCookieFilename():
             _delete_config_file(self.cookie_session_filename)
 
     def loadSessionCookie(self):
-        if not type(self.cookie_session_filename) in types.StringTypes:
+        if not self._haveCookieFilename():
             return False
         try:
             self._load_cookie_login(_open_config_file(self.cookie_session_filename,"rb"))
@@ -255,9 +263,9 @@ class GCSession(object):
         return True
 
     def _check_is_session_valid(self, content):
-        if content.find("id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0 \
-        or content.find('<a id="hlSignIn" accesskey="s" title="Sign In" class="SignInLink" href="/login/">Sign In') >= 0 \
-        or content.find('<h2>Object moved to <a href="https://www.geocaching.com/login/?RESET=Y&amp;redir=') >= 0:
+        if content.find(b"id=\"ctl00_ContentBody_cvLoginFailed\"") >= 0 \
+        or content.find(b'<a id="hlSignIn" accesskey="s" title="Sign In" class="SignInLink" href="/login/">Sign In') >= 0 \
+        or content.find(b'<h2>Object moved to <a href="https://www.geocaching.com/login/?RESET=Y&amp;redir=') >= 0:
             self.invalidate_cookie()
             self.logged_in = 0
             return False
