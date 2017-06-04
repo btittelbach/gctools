@@ -59,12 +59,16 @@ if __name__ == '__main__':
       print "ERROR, could not parse %s" % (gpxfile)
       print "\tErrorMsg: %s" % (str(e))
       continue
-    urls = [ url.text for url in tree.iterfind(".//{http://www.topografix.com/GPX/1/0}url",namespaces=tree.nsmap) ]
+    nsmap = tree.nsmap
+    if None in nsmap:
+        nsmap["gcns"] = nsmap[None]
+        del nsmap[None]
+    urls = [ url.text for url in tree.iterfind(".//{http://www.topografix.com/GPX/1/0}url",namespaces=nsmap) ]
     gcids += map(lambda x: x[len(gc_guid_uri_):], filter(lambda x: x.startswith(gc_guid_uri_), urls))
     votes_dict = gc.get_gcvotes(gcids, gcvote_username_, gcvote_password_, use_median=use_median_)
-    for wpt_elem in tree.iterfind("{http://www.topografix.com/GPX/1/0}wpt",namespaces=tree.nsmap):
-      gccode = wpt_elem.find("{http://www.topografix.com/GPX/1/0}name",namespaces=tree.nsmap).text
-      sdesc_elem = wpt_elem.find(".//{http://www.groundspeak.com/cache/1/0}short_description",namespaces=tree.nsmap)
+    for wpt_elem in tree.iterfind("{http://www.topografix.com/GPX/1/0}wpt",namespaces=nsmap):
+      gccode = wpt_elem.find("{http://www.topografix.com/GPX/1/0}name",namespaces=nsmap).text
+      sdesc_elem = wpt_elem.find(".//{http://www.groundspeak.com/cache/1/0}short_description",namespaces=nsmap)
       if sdesc_elem is not None and gccode in votes_dict:
         vote_info = show_vote_string_ % votes_dict[gccode]
         sdesc_elem.set("html","True")
