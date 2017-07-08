@@ -12,6 +12,7 @@ import requests
 import re
 import pickle
 import types
+from io import StringIO
 try:
 	# Python3
 	import urllib.parse as urlparse
@@ -506,3 +507,14 @@ def read_garmin_fieldnotes_xml(filename):
                                                 type=log_elem.find("./{http://www.garmin.com/xmlschemas/geocache_visits/v1}result").text,
                                                 comment=log_elem.find("./{http://www.garmin.com/xmlschemas/geocache_visits/v1}comment").text))
     return rv
+
+def urlopen(url):
+    gcsession = getDefaultInteractiveGCSession()
+    r = gcsession.req_get(url)
+    return StringIO(r.text)
+
+def urlretrieve(url, filename):
+    gcsession = getDefaultInteractiveGCSession()
+    r = gcsession.req_get(url)
+    fh = open(filename, 'wb')
+    fh.write(r.content)
