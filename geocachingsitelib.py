@@ -9,8 +9,13 @@ import sys
 import os
 from lxml import etree
 import requests
+try:
+    # Python3
+    from http.cookiejar import LWPCookieJar
+except:
+    # Python2
+    from cookielib import LWPCookieJar
 import re
-import pickle
 import types
 from io import StringIO
 try:
@@ -25,7 +30,7 @@ from collections import namedtuple
 
 #### Global Constants ####
 
-gc_auth_uri_ = "https://www.geocaching.com/login/default.aspx"
+gc_auth_uri_ = "https://www.geocaching.com/account/login?ReturnUrl=%2Fplay%2Fsearch"
 gc_uploadfieldnotes_uri_ = "https://www.geocaching.com/my/uploadfieldnotes.aspx"
 gc_listfieldnotes_uri_ = "https://www.geocaching.com/my/fieldnotes.aspx"
 gc_wp_uri_ = "https://www.geocaching.com/seek/cache_details.aspx?wp=%s"
@@ -62,9 +67,6 @@ def _debug_print(context,*args):
         print(u"\n\n=============== %s ===============" % context,file=sys.stderr)
         print(*args,file=sys.stderr)
 
-def _is_new_requests_lib():
-    return "__build__" in requests.__dict__ and requests.__build__ >= 0x000704
-
 def _did_request_succeed(r):
     if "error" in r.__dict__:
         return r.error is None
@@ -72,13 +74,6 @@ def _did_request_succeed(r):
         return r.status_code in [requests.codes.ok, 302]
     else:
         assert False
-
-def _new_cookie_jar():
-    if _is_new_requests_lib():
-        return {}
-    else:
-        import cookielib
-        return cookielib.CookieJar()
 
 def _init_parser():
     global parser_, xml_parser_
@@ -114,25 +109,30 @@ def _ask_usr_pwd():
     pwd = sys.stdin.readline().strip("\n")
     return (usr,pwd)
 
-def _parse_for_hidden_inputs(uri):
+def _request_for_hidden_inputs(uri):
     gcsession = getDefaultInteractiveGCSession()
-    post_data = {}
-    formaction = uri
     r = gcsession.req_get(uri)
     if _did_request_succeed(r):
-        tree = etree.fromstring(r.content, parser_)
-        formelem = tree.find(".//form")
-        if not formelem is None:
-            for input_elem in formelem.findall(".//input[@type='hidden']"):
-                post_data[input_elem.get("name")] = input_elem.get("value")
-            formaction=urlparse.urljoin(uri,formelem.get("action"))
+        return _parse_for_hidden_inputs(uri, r.content)
+    else:
+        return ({}, uri)
+
+def _parse_for_hidden_inputs(uri, content):
+    post_data = {}
+    formaction = uri
+    tree = etree.fromstring(content, parser_)
+    formelem = tree.find(".//form")
+    if not formelem is None:
+        for input_elem in formelem.findall(".//input[@type='hidden']"):
+            post_data[input_elem.get("name")] = input_elem.get("value")
+        formaction=urlparse.urljoin(uri,formelem.get("action"))
     return (post_data, formaction)
 
-def _open_config_file(filename, mode):
+def _config_file(filename):
     if not os.path.isdir(default_config_dir_):
         os.makedirs(default_config_dir_)
     filepath = os.path.join(default_config_dir_, os.path.basename(filename))
-    return open(filepath, mode)
+    return filepath
 
 def _delete_config_file(filename):
     filepath = os.path.join(default_config_dir_, os.path.basename(filename))
@@ -165,30 +165,18 @@ class GCSession(object):
         self.gc_username = gc_username
         self.gc_password = gc_password
         self.cookie_session_filename = cookie_session_filename
-        self.user_agent_ = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.2) Gecko/20100101 Firefox/10.0.2"
-        self.cookie_jar_ = _new_cookie_jar()
+        self.user_agent_ = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0"
+        self.session = requests.Session()
+        if self._haveCookieFilename():
+            self.session.cookies = LWPCookieJar(_config_file(self.cookie_session_filename))
 
-    def _save_cookie_login(self, cookie_fileobject):
-        global cookie_jar_
-        saved_data = {
-            "jar":self.cookie_jar_,
-            "requestsversion": requests.__build__ if  "__build__" in requests.__dict__ else None
-        }
-        assert(cookie_fileobject.mode == "wb")
-        pickle.dump(saved_data, cookie_fileobject, 2)
+    def _save_cookie_login(self):
+        _debug_print("save cookies", self.session.cookies)
+        self.session.cookies.save(ignore_discard=True)
 
-    def _load_cookie_login(self, cookie_fileobject):
-        assert(cookie_fileobject.mode == "rb")
-        saved_data = pickle.load(cookie_fileobject)
-        if not ("jar" in saved_data and "requestsversion" in saved_data):
-            raise Exception("No Cookies in this pickle jar")
-        if _is_new_requests_lib():
-            if saved_data["requestsversion"] is None or saved_data["requestsversion"] > requests.__build__:
-                raise Exception("given cookie file is not compatible")
-        else:
-            if not saved_data["requestsversion"] is None:
-                raise Exception("given cookie file is not compatible")
-        self.cookie_jar_ = saved_data["jar"]
+    def _load_cookie_login(self):
+        self.session.cookies.load(ignore_discard=True)
+        _debug_print("loaded cookies", self.session.cookies)
 
     def _haveUserPass(self):
         return isinstance(self.gc_username, str) and isinstance(self.gc_password, str)
@@ -208,34 +196,37 @@ class GCSession(object):
     def login(self):
         if not self._haveUserPass():
             raise Exception("Login called without known username/passwort")
-        remember_me = self._haveCookieFilename() and _is_new_requests_lib()
-        post_data = {
-            "__EVENTTARGET":"",
-            "__EVENTARGUMENT":"",
-            "ctl00$ContentBody$tbUsername":self.gc_username,
-            "ctl00$ContentBody$tbPassword":self.gc_password,
-            "ctl00_ContentBody_cbRememberMe": True,
-            "ctl00$ContentBody$btnSignIn":"Login"
-        }
-        if remember_me:
-            post_data["ctl00$ContentBody$cbRememberMe"] = "1"
-        r = requests.post(gc_auth_uri_, data = post_data, allow_redirects = True, cookies = self.cookie_jar_, headers = {"User-Agent":self.user_agent_})
-        _debug_print("login",r.content.decode("utf-8"))
-        login_ok = False
-        if _is_new_requests_lib():
-            self.cookie_jar_ = r.cookies
-            _debug_print("login cookies ",r.cookies)
-            login_ok = _did_request_succeed(r) and "gspkauth" in r.cookies
-        else:
-            login_ok = _did_request_succeed(r) and re.sub(r"<[^>]*>","",r.content).find('You are signed in as %s' % (self.gc_username)) > -1
+        remember_me = self._haveCookieFilename()
+
+        headers = {
+            "User-Agent":self.user_agent_
+            }
+
+        # Get a cookie and the anti-forgery token
+        r = self.session.get(gc_auth_uri_, allow_redirects = True, headers = headers)
+        post_data , formaction = _parse_for_hidden_inputs(gc_auth_uri_, r.content)
+
+        post_data.update({
+            "Username":self.gc_username,
+            "Password":self.gc_password,
+        })
+
+        headers.update({"Referer" : gc_auth_uri_ })
+
+        # Log in
+        r = self.session.post(formaction, data = post_data, allow_redirects = True, headers = headers)
+
+        # Check for cookie
+        login_ok = _did_request_succeed(r) and "gspkauth" in [cookie.name for cookie in self.session.cookies]
+
         if not login_ok:
             return False
         if remember_me:
-            self._save_cookie_login(_open_config_file(self.cookie_session_filename,"wb"))
+            self._save_cookie_login()
         return login_ok
 
     def invalidate_cookie(self):
-        self.cookie_jar_ = _new_cookie_jar()
+        self.session.cookies.clear()
         if self._haveCookieFilename():
             _delete_config_file(self.cookie_session_filename)
 
@@ -243,8 +234,8 @@ class GCSession(object):
         if not self._haveCookieFilename():
             return False
         try:
-            self._load_cookie_login(_open_config_file(self.cookie_session_filename,"rb"))
-            return True
+            self._load_cookie_login()
+            return "gspkauth" in [cookie.name for cookie in self.session.cookies]
         except:
             self.invalidate_cookie()
             return False
@@ -277,7 +268,7 @@ class GCSession(object):
         while attempts > 0:
             self._check_login()
             attempts -= 1
-            r = reqfun(self.cookie_jar_)
+            r = reqfun()
             _debug_print("req_wrap","uri: %s\n" % r.url,"attempts: %d\n" % attempts, r.content)
             if _did_request_succeed(r):
                 if self._check_is_session_valid(r.content):
@@ -287,10 +278,10 @@ class GCSession(object):
         raise NotLoggedInError("Request to geocaching.com failed")
 
     def req_get(self, uri):
-        return self.req_wrap(lambda cookies: requests.get(uri, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
+        return self.req_wrap(lambda : self.session.get(uri, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
     def req_post(self, uri, post_data, files = None):
-        return self.req_wrap(lambda cookies: requests.post(uri, data = post_data, files = _seek0_files_in_dict(files), allow_redirects = False, cookies = cookies, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
+        return self.req_wrap(lambda : self.session.post(uri, data = post_data, files = _seek0_files_in_dict(files), allow_redirects = False, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
 
 _gc_session_ = False
@@ -311,7 +302,7 @@ def getDefaultInteractiveGCSession():
 def download_gpx(gccode, dstdir):
     gcsession = getDefaultInteractiveGCSession()
     uri = gc_wp_uri_ % gccode.upper()
-    post_data , formaction = _parse_for_hidden_inputs(uri)
+    post_data , formaction = _request_for_hidden_inputs(uri)
     post_data.update({"ctl00$ContentBody$btnGPXDL":"GPX file"})
     attempts=5
     while attempts > 0:
