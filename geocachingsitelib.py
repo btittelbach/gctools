@@ -102,11 +102,14 @@ def _ask_usr_pwd():
             print(e)
             if gc_debug:
                 raise e
+    import getpass
+    try:
+        input = raw_input
+    except NameError:
+        pass
     print("Please provide your geocaching.com login credentials:")
-    sys.stdout.write("username: ")
-    usr = sys.stdin.readline().strip()
-    sys.stdout.write("password: ")
-    pwd = sys.stdin.readline().strip("\n")
+    usr = input("Username: ")
+    pwd = getpass.getpass()
     return (usr,pwd)
 
 def _request_for_hidden_inputs(uri):
