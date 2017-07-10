@@ -13,7 +13,7 @@ import getopt
 #import xml.etree.ElementTree as etree
 from lxml import etree
 import re
-import urllib.request, urllib.parse, urllib.error
+import urllib.error
 import atexit
 import imghdr
 from multiprocessing import Pool, Lock, RLock
@@ -21,6 +21,8 @@ from hashlib import md5
 import pickle
 import shutil
 import codecs
+
+import geocachingsitelib as gc
 
 def usage():
   print("This tool will take a geocaching.com pocketquery and download and geotag spoiler pics")
@@ -105,8 +107,7 @@ def geotagImage(imgfile, lat, lon, altitude=0):
 
 def downloadImage(imguri, saveas):
   if not saveas is None:
-    urllib.request.urlretrieve(url=imguri, filename=saveas)
-    urllib.request.urlcleanup()
+    gc.urlretrieve(url=imguri, filename=saveas)
     return saveas
   return None
 
@@ -215,7 +216,7 @@ def parseHTMLDescriptionDownloadAndTag(url, gccode, gcname, gchash, latitude, lo
   html_parser = etree.HTMLParser(encoding="utf-8")
   parprint("Processing: %s %s" %(gccode, gcname))
   try:
-    fcp = urllib.request.urlopen(url)
+    fcp = gc.urlopen(url)
     gcwebtree = etree.parse(fcp,html_parser).getroot()
     fcp.close()
   except (urllib.error.URLError, socket.gaierror) as e:
