@@ -286,6 +286,8 @@ class GCSession(object):
     def req_post(self, uri, post_data, files = None):
         return self.req_wrap(lambda : self.session.post(uri, data = post_data, files = _seek0_files_in_dict(files), allow_redirects = False, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
+    def req_post_json(self, uri, json_data):
+        return self.req_wrap(lambda : self.session.post(uri, json = json_data, allow_redirects = False, headers = {"User-Agent":self.user_agent_, "Referer":uri}))
 
 _gc_session_ = False
 gc_username = None
@@ -347,6 +349,26 @@ def download_pq(pquid, dstdir):
             fh.write(r.content)
             return filename
     raise GeocachingSiteError("Invalid PQ uid or other geocaching.com error")
+
+def update_coordinates(gccode, latitude, longitude):
+    import re
+    gcsession = getDefaultInteractiveGCSession()
+    uri = "https://www.geocaching.com/seek/cache_details.aspx/SetUserCoordinate"
+
+    # Get the user token
+    r = gcsession.req_get(gc_wp_uri_ % gccode)
+
+    res = re.search('userToken = \'(.*)\';', r.content)
+    if not(res):
+        GeocachingSiteError("Did not find userToken!")
+
+    userToken = res.group(1)
+
+    json_data = {
+            "dto": {
+                "data": {"lat": latitude, "lng": longitude }, "ut": userToken }
+            }
+    r = gcsession.req_post_json(uri, json_data)
 
 def upload_fieldnote(fieldnotefileObj, ignore_previous_logs = True):
     gcsession = getDefaultInteractiveGCSession()
