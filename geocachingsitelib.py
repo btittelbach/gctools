@@ -210,7 +210,7 @@ class GCSession(object):
         post_data , formaction = _parse_for_hidden_inputs(gc_auth_uri_, r.content)
 
         post_data.update({
-            "Username":self.gc_username,
+            "UsernameOrEmail":self.gc_username,
             "Password":self.gc_password,
         })
 
